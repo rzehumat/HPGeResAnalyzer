@@ -130,3 +130,6 @@ dmypy.json
 
 # testing files
 raw_reports/
+parsed_reports/
+
+.vscode/
