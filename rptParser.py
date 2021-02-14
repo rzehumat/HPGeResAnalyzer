@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import re
+from sys import argv
 import dateutil.parser as dparser
 
 
@@ -46,7 +47,7 @@ def parse_data(lines):
     return data
 
 
-def parse_RPT(rpt_file):
+def parse_one_RPT(rpt_file):
     my_file = open(rpt_file, 'r')
     lines = my_file.readlines()
 
@@ -69,14 +70,17 @@ def parse_RPT(rpt_file):
     
     return res
 
+def parse_RPT(folder):
+    if not os.path.isdir(f"./{folder}"):
+        raise Exception(f"Folder {folder} not found. Consider creating it and moving RPT files there.")
 
-if not os.path.isdir("raw_reports"):
-    raise Exception("Folder 'raw_reports' not found. Consider creating it and moving RPT files there.")
+    Path("./parsed_reports").mkdir(parents=True, exist_ok=True)
 
-Path("./parsed_reports").mkdir(parents=True, exist_ok=True)
+    for rpt_file in glob.iglob(f"./{folder}/*.RPT"):
+        res_df = parse_one_RPT(rpt_file)
 
-for rpt_file in glob.iglob("./raw_reports/*.RPT"):
-    res_df = parse_RPT(rpt_file)
+        name = (rpt_file.split('.')[-2]).split('/')[-1]
+        res_df.to_csv(f"parsed_reports/{name}.csv")
 
-    name = (rpt_file.split('.')[-2]).split('/')[-1]
-    res_df.to_csv(f"parsed_reports/{name}.csv")
+folder = argv[1]
+parse_RPT(folder)
