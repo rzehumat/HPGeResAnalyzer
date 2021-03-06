@@ -131,6 +131,8 @@ dmypy.json
 # testing files
 raw_reports/
 parsed_reports/
+downloads/
+ig_db/
 
 .vscode/
 scratches.ipynb
