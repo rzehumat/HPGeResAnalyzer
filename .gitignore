@@ -133,6 +133,7 @@ raw_reports/
 parsed_reports/
 downloads/
 ig_db/
+with_Ig/
 
 .vscode/
 scratches.ipynb
