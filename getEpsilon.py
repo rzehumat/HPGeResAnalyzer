@@ -19,9 +19,11 @@ def add_epsilon_dir(parsed_dir, geom):
 
 def add_epsilon_file(report_path, geom, eps_df):
     df = pd.read_csv(report_path, index_col=0)
+    file_name = report_path.split('/')[1]
     df["eps"] = df["E"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
     print(report_path)
-    df.to_csv("with_eps/fname.csv")
+    # change acc. to filename!!!
+    df.to_csv(f"with_eps/{file_name}")
 
 def add_epsilon_val(num, geom, eps_df):
     if isnan(num):
