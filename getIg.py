@@ -13,7 +13,7 @@ def append_Igamma_dir(parsed_dir):
     if not os.path.isdir(parsed_dir):
         raise Exception(f"Directory '{parsed_dir}' not found. Consider creating it and moving parsed files there.")
 
-    Path("./reports_Ig").mkdir(parents=True, exist_ok=True)
+    #Path("./reports_Ig").mkdir(parents=True, exist_ok=True)
     for parsed_file in glob.iglob(f"{parsed_dir}/*.csv"):
         append_Igamma(parsed_file)
 
