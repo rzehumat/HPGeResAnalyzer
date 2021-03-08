@@ -7,7 +7,6 @@ from pathlib import Path
 from sys import argv
 
 def add_epsilon_dir(parsed_dir, geom):
-    
     if not os.path.isdir(parsed_dir):
         raise Exception(f"Directory '{parsed_dir}' not found. Consider creating it and moving parsed files there.")
     
@@ -20,9 +19,14 @@ def add_epsilon_dir(parsed_dir, geom):
 def add_epsilon_file(report_path, geom, eps_df):
     df = pd.read_csv(report_path, index_col=0)
     file_name = report_path.split('/')[1]
-    df["eps"] = df["E"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
-    print(report_path)
-    # change acc. to filename!!!
+    df["eps"] = df["E_tab"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
+
+    # change the order of columns 
+    old_column_order = df.columns.tolist()
+    first_cols = ["Pk", "Energy", "FWHM", "E_tab", "Area", "%err", "Ig", "eps", "Sample Geometry"]
+    new_cols = first_cols + list(set(old_column_order) - set(first_cols))
+    df = df[new_cols]
+    
     df.to_csv(f"with_eps/{file_name}")
 
 def add_epsilon_val(num, geom, eps_df):
