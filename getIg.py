@@ -13,7 +13,6 @@ def append_Igamma_dir(parsed_dir):
     if not os.path.isdir(parsed_dir):
         raise Exception(f"Directory '{parsed_dir}' not found. Consider creating it and moving parsed files there.")
 
-    Path("./reports_Ig").mkdir(parents=True, exist_ok=True)
     for parsed_file in glob.iglob(f"{parsed_dir}/*.csv"):
         append_Igamma(parsed_file)
 
@@ -46,21 +45,21 @@ def append_Igamma(file):
     joined_df.to_csv(f"with_Ig/{A}{element}.csv")
 
 def add_Ig(df, ig):
-    e_col = []
-    ig_col = []
+    # e_col = []
+    # ig_col = []
 
     a = np.empty((df.shape[0], 2))
     a[:] = np.nan
-    df[["E", "Ig"]] = a
+    df[["E_tab", "Ig"]] = a
     # UGLY, never for-loop in pandas
     for row_no in range(df.shape[0]):
         for ig_row_no in range(ig.shape[0]):
-            if (df["Energy"] - df["FWHM"]).iloc[row_no] > ig["E"].iloc[ig_row_no]:
+            if (df["Energy"] - df["FWHM"]).iloc[row_no] > ig["E_tab"].iloc[ig_row_no]:
                 continue
-            elif (df["Energy"] + df["FWHM"]).iloc[row_no] < ig["E"].iloc[ig_row_no]:
+            elif (df["Energy"] + df["FWHM"]).iloc[row_no] < ig["E_tab"].iloc[ig_row_no]:
                 break
             else:
-                df.loc[row_no, ["E", "Ig"]] = ig.loc[ig_row_no, ["E", "Ig"]]
+                df.loc[row_no, ["E_tab", "Ig"]] = ig.loc[ig_row_no, ["E_tab", "Ig"]]
     print("Ig added")
     return df
 
@@ -108,7 +107,7 @@ def extract_Igamma(A, element):
 
 
     df_dict = {
-        "E": energy,
+        "E_tab": energy,
         "sigm_E": sigm_energy, 
         "Ig": i,
         "sigm_Ig": sigm_i
@@ -121,5 +120,3 @@ def extract_Igamma(A, element):
 
 folder = argv[1]
 append_Igamma_dir(folder)
-
-

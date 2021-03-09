@@ -134,6 +134,7 @@ parsed_reports/
 downloads/
 ig_db/
 with_Ig/
+with_eps/
 
 .vscode/
 scratches.ipynb
