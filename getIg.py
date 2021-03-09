@@ -5,6 +5,7 @@ import os
 import glob
 import re
 import urllib
+import shutil
 
 from bs4 import BeautifulSoup
 from pathlib import Path
@@ -20,6 +21,7 @@ def append_Igamma_dir(parsed_dir):
 
 def append_Igamma(file):
     A, element = re.split(r'(\d+)(\w+)', file)[-3:-1]
+    print(f"File is {file}")
     print(A)
     element = element.split('_g')[0]
     print(element)
@@ -33,6 +35,7 @@ def append_Igamma(file):
         if os.path.isfile(f"downloads/{A}{element}.html"):
             err = extract_Igamma(A, element)
             if err > 0:
+                shutil.copy(file, "with_Ig/")
                 return "Are you sure such element has gamma lines?"
             ig_df = pd.read_csv(f"ig_db/{A}{element}.csv", header=0, index_col=0)
             print("Reading the csv with gammas.")
@@ -40,6 +43,7 @@ def append_Igamma(file):
             download(A, element)
             err = extract_Igamma(A, element)
             if err > 0:
+                shutil.copy(file, "with_Ig/")
                 return "Are you sure such element has gamma lines?"
             ig_df = pd.read_csv(f"ig_db/{A}{element}.csv", header=0, index_col=0)
             print("Reading the csv with gammas.")

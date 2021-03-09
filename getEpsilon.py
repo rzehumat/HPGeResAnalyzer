@@ -23,16 +23,26 @@ def add_epsilon_file(report_path, geom, eps_df):
     df = pd.read_csv(report_path, index_col=0)
     print(f"name is {report_path}")
     file_name = report_path.split('/')[1]
-    df["eps"] = df["E_tab"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
+    try:
+        df["eps"] = df["E_tab"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
+    except:
+        print("Seems like this isotope has no gamma lines. WTF have you measured.")
+        print("I'll at least add detection efficiencies...")
+        df["E_tab"] = df["Energy"]
+        df["eps"] = df["E_tab"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
 
-    # change the order of columns 
+    # change the order of columns
+    # UGLY
+    if "Ig" not in df.columns:
+        df["Ig"] = float("NaN")
+    
     old_column_order = df.columns.tolist()
-    #df["Geometry"] = [geom for i in range(df.shape[0])] 
     df["Geometry"] = geom
     iso = (report_path.split('/')[-1]).split('_g')[0]
     print(f"iso is {iso}")
     df["Isotope"] = iso
     first_cols = ["Pk", "Isotope", "Energy", "FWHM", "E_tab", "Area", "%err", "Ig", "eps", "Geometry"]
+    
     new_cols = first_cols + list(set(old_column_order) - set(first_cols))
     df = df[new_cols]
     # that is wrong -- it's always 30 in the RPT files...
