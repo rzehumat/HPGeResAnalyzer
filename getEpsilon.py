@@ -19,20 +19,37 @@ def add_epsilon_dir(parsed_dir):
         print(f"Geom is {geom} mm.")
         add_epsilon_file(parsed_file, geom, eps_df)
 
+def drop_unit(long_str):
+    return float(long_str.split(' ')[0])
+
 def add_epsilon_file(report_path, geom, eps_df):
     df = pd.read_csv(report_path, index_col=0)
-    print(f"name is {report_path}")
     file_name = report_path.split('/')[1]
-    df["eps"] = df["E_tab"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
+    try:
+        df["eps"] = df["E_tab"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
+    except:
+        print("Seems like this isotope has no gamma lines. WTF have you measured.")
+        print("I'll at least add detection efficiencies...")
+        df["E_tab"] = df["Energy"]
+        df["eps"] = df["E_tab"].apply(lambda x: add_epsilon_val(x, geom, eps_df))
 
-    # change the order of columns 
+    # change the order of columns
+    # UGLY
+    if "Ig" not in df.columns:
+        df["Ig"] = float("NaN")
+    
+    df["Live Time"] = df["Live Time"].apply(drop_unit)
+    df["Real Time"] = df["Real Time"].apply(drop_unit)
+    df["Dead Time"] = 0.001*df["Dead Time"].apply(drop_unit)
+    df["Identification Energy Tolerance"] = df["Identification Energy Tolerance"].apply(drop_unit)
+
+
     old_column_order = df.columns.tolist()
-    #df["Geometry"] = [geom for i in range(df.shape[0])] 
     df["Geometry"] = geom
     iso = (report_path.split('/')[-1]).split('_g')[0]
-    print(f"iso is {iso}")
     df["Isotope"] = iso
-    first_cols = ["Pk", "Isotope", "Energy", "FWHM", "E_tab", "Area", "%err", "Ig", "eps", "Geometry"]
+    first_cols = ["Pk", "Isotope", "Energy", "FWHM", "E_tab", "Area", "%err", "Ig", "eps", "Geometry", "Real Time", "Live Time"]
+    
     new_cols = first_cols + list(set(old_column_order) - set(first_cols))
     df = df[new_cols]
     # that is wrong -- it's always 30 in the RPT files...
@@ -44,6 +61,11 @@ def add_epsilon_file(report_path, geom, eps_df):
         "Peak Search Sensitivity", 
         "Peak Analysis From Channel", 
         "Peak Fit Engine Name",
+        "Sample Size",
+        "Sample Type", 
+        "Sample Identification", 
+        "IT", 
+        "Fit"
         ]
     df = df.drop(columns = to_drop)
     df.to_csv(f"out/{file_name}")
