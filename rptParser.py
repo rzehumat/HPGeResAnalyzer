@@ -82,5 +82,6 @@ def parse_RPT(folder):
         name = (rpt_file.split('.')[-2]).split('/')[-1]
         res_df.to_csv(f"parsed_reports/{name}.csv")
 
-folder = argv[1]
-parse_RPT(folder)
+if __name__ == "__main__":
+    folder = argv[1]
+    parse_RPT(folder)

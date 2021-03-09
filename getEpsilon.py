@@ -30,7 +30,7 @@ def add_epsilon_file(report_path, geom, eps_df):
     # that is wrong -- it's always 30 in the RPT files...
     df = df.drop(columns = ["Sample Geometry"])
 
-    df.to_csv(f"with_eps/{file_name}")
+    df.to_csv(f"out/{file_name}")
 
 def add_epsilon_val(num, geom, eps_df):
     if isnan(num):
@@ -43,6 +43,7 @@ def add_epsilon_val(num, geom, eps_df):
         eps = curr_eps + dec_e*(float(eps_df.loc[int_e + 1, f"eps_{geom}_mm"]) - curr_eps)
     return eps
 
-file_dir = argv[1]
-geom = argv[2]
-add_epsilon_dir(file_dir, geom)
+if __name__ == "__main__":
+    file_dir = argv[1]
+    geom = argv[2]
+    add_epsilon_dir(file_dir, geom)
