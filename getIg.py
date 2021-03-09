@@ -17,9 +17,11 @@ def append_Igamma_dir(parsed_dir):
         append_Igamma(parsed_file)
 
 def append_Igamma(file):
+    print("App_ig")
     print(file)
     A, element = re.split(r'(\d+)(\w+)', file)[-3:-1]
     print(A)
+    element = element.split('_g')[0]
     print(element)
 
     Path("./ig_db").mkdir(parents=True, exist_ok=True)
@@ -42,12 +44,9 @@ def append_Igamma(file):
     joined_df = add_Ig(parsed_df, ig_df)
     
     Path("./with_Ig").mkdir(parents=True, exist_ok=True)
-    joined_df.to_csv(f"with_Ig/{A}{element}.csv")
+    joined_df.to_csv(f"with_Ig/{file.split('/')[-1]}")
 
 def add_Ig(df, ig):
-    # e_col = []
-    # ig_col = []
-
     a = np.empty((df.shape[0], 2))
     a[:] = np.nan
     df[["E_tab", "Ig"]] = a
@@ -118,5 +117,6 @@ def extract_Igamma(A, element):
    
     print(f"Ig extracted from file 'downloads/{A}{element}.html' into '{df_name}'.")
 
-folder = argv[1]
-append_Igamma_dir(folder)
+if __name__ == "__main__":
+    folder = argv[1]
+    append_Igamma_dir(folder)
