@@ -5,9 +5,11 @@ import os
 import glob
 import re
 import urllib
+
 from bs4 import BeautifulSoup
 from pathlib import Path
 from sys import argv
+from termcolor import colored
 
 def append_Igamma_dir(parsed_dir):
     if not os.path.isdir(parsed_dir):
@@ -17,8 +19,6 @@ def append_Igamma_dir(parsed_dir):
         append_Igamma(parsed_file)
 
 def append_Igamma(file):
-    print("App_ig")
-    print(file)
     A, element = re.split(r'(\d+)(\w+)', file)[-3:-1]
     print(A)
     element = element.split('_g')[0]
@@ -31,12 +31,16 @@ def append_Igamma(file):
     else:
         Path("./downloads").mkdir(parents=True, exist_ok=True)
         if os.path.isfile(f"downloads/{A}{element}.html"):
-            extract_Igamma(A, element)
+            err = extract_Igamma(A, element)
+            if err > 0:
+                return "Are you sure such element has gamma lines?"
             ig_df = pd.read_csv(f"ig_db/{A}{element}.csv", header=0, index_col=0)
             print("Reading the csv with gammas.")
         else:
             download(A, element)
-            extract_Igamma(A, element)
+            err = extract_Igamma(A, element)
+            if err > 0:
+                return "Are you sure such element has gamma lines?"
             ig_df = pd.read_csv(f"ig_db/{A}{element}.csv", header=0, index_col=0)
             print("Reading the csv with gammas.")
     
@@ -64,6 +68,8 @@ def add_Ig(df, ig):
 
 def getZ(element):
     element_Z ={
+        "H": 1,
+        "He": 2,
         "Eu": 63,
         "U": 92,
         "Pu": 94
@@ -71,7 +77,15 @@ def getZ(element):
     return element_Z[element]
 
 def download(A, element):
-    url = f"http://nucleardata.nuclear.lu.se/toi/nuclide.asp?iZA={getZ(element)}0{A}"
+    A = int(A)
+    if A < 10:
+        str_A = '00' + str(A)
+    elif A < 100:
+        str_A = '0' + str(A)
+    else:
+        str_A = str(A)
+
+    url = f"http://nucleardata.nuclear.lu.se/toi/nuclide.asp?iZA={getZ(element)}0{str_A}"
     urllib.request.urlretrieve (url, f"downloads/{A}{element}.html")
     print(f"File {A}{element}.html downloaded.")
 
@@ -79,8 +93,19 @@ def extract_Igamma(A, element):
     html_file = open(f"downloads/{A}{element}.html", "r")
     soup = BeautifulSoup(html_file.read(), 'lxml')
     
-    gammas_table = soup.find_all("table")[4]
-    gammas_rows = gammas_table.find_all('tr')[3:-1]
+    try:
+        gammas_table = soup.find_all("table")[4]
+        gammas_rows = gammas_table.find_all('tr')[3:-1]
+    except:
+        A = int(A)
+        if A < 10:
+            str_A = '00' + str(A)
+        elif A < 100:
+            str_A = '0' + str(A)
+        print(colored(f"Seems like there are no gamma-lines known for isotope {A}{element}.", 'red'))
+        print(colored("Check yellow pages for reference.", 'yellow'))
+        print(colored(f"http://nucleardata.nuclear.lu.se/toi/nuclide.asp?iZA={getZ(element)}0{str_A}", 'yellow'))
+        return 1
     energy = []
     sigm_energy = []
     i = []
@@ -116,6 +141,7 @@ def extract_Igamma(A, element):
     df.to_csv(df_name)
    
     print(f"Ig extracted from file 'downloads/{A}{element}.html' into '{df_name}'.")
+    return 0
 
 if __name__ == "__main__":
     folder = argv[1]
