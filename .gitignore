@@ -136,6 +136,7 @@ ig_db/
 with_Ig/
 with_eps/
 out/
+naa_raw/
 
 .vscode/
 scratches.ipynb
