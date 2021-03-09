@@ -23,10 +23,13 @@ def add_epsilon_file(report_path, geom, eps_df):
 
     # change the order of columns 
     old_column_order = df.columns.tolist()
-    first_cols = ["Pk", "Energy", "FWHM", "E_tab", "Area", "%err", "Ig", "eps", "Sample Geometry"]
+    df["Geometry"] = [geom for i in range(df.shape[0])] 
+    first_cols = ["Pk", "Energy", "FWHM", "E_tab", "Area", "%err", "Ig", "eps", "Geometry"]
     new_cols = first_cols + list(set(old_column_order) - set(first_cols))
     df = df[new_cols]
-    
+    # that is wrong -- it's always 30 in the RPT files...
+    df = df.drop(columns = ["Sample Geometry"])
+
     df.to_csv(f"with_eps/{file_name}")
 
 def add_epsilon_val(num, geom, eps_df):
