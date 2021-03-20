@@ -74,6 +74,7 @@ def getZ(element):
     element_Z ={
         "H": 1,
         "He": 2,
+        "Xe": 54,
         "Eu": 63,
         "U": 92,
         "Pu": 94

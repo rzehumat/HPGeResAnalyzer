@@ -136,6 +136,27 @@ ig_db/
 with_Ig/
 with_eps/
 out/
+naa_raw/
 
 .vscode/
 scratches.ipynb
+parsed_reports_swap/M1-C1-Udepl-120.csv
+parsed_reports_swap/M1-C2-Udepl-80.csv
+parsed_reports_swap/M2-C2-Udepl-80.csv
+parsed_reports_swap/M3-C2-Udepl-30.csv
+parsed_reports_swap/M4-C1-Udepl-3.csv
+parsed_reports_swap/M5-C1-Udepl-3.csv
+parsed_reports_swap/M6-C1-Udepl-3.csv
+parsed_reports_swap/M5-C2-Udepl-3.csv
+parsed_reports_swap/M4-C2-Udepl-3.csv
+parsed_reports_swap/M3-C1-Udepl-30.csv
+parsed_reports_swap/M6-C2-Udepl-3.csv
+parsed_reports_swap/M2-C1-Udepl-120.csv
+aux_data/origins2.json
+aux_data/origins.json
+aux_data/origins.json
+aux_data/origins.json
+aux_data/origins.json
+aux_data/origins.json
+aux_data/origins.json
+aux_data/origins.json
