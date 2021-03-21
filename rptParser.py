@@ -72,6 +72,34 @@ def parse_one_RPT(rpt_file):
     
     return res
 
+def polish_dtypes(df):
+    DATETIME_COLUMN = "Report Generated On"
+    UNSIGNED_COLUMNS = ["Pk", "Area", "Bkgnd", "Left", "PW", "Sample Identification"]
+    INT_COLUMNS = ["IT", "Sample Type"]
+    FLOAT_COLUMNS = ["Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", "Peak Locate Threshold"]
+    TO_DROP = ["Sample Geometry", "Peak Locate Range (in channels)", "Sample Size", "Dead Time", "Peak Analysis Report                    26.11.2020  5", "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", "Use Fixed FWHM", "Peak Fit Engine Name"]
+    cols = df.columns.tolist()
+    if DATETIME_COLUMN in cols:
+        df[DATETIME_COLUMN] = pd.to_datetime(df[DATETIME_COLUMN])
+    for col in UNSIGNED_COLUMNS:
+        df[col] = pd.to_numeric(df[col], downcast = "unsigned")
+    for col in INT_COLUMNS:
+        df[col] = pd.to_numeric(df[col], downcast = "integer")
+    for col in FLOAT_COLUMNS:
+        df[col] = pd.to_numeric(df[col], downcast = "float")
+    for col in ["Real Time", "Live Time", "Identification Energy Tolerance"]:
+        if col in cols:
+            unit = str(df[col][0]).split()[-1]
+            df[col] = (df[col].str.split(" ").str[0]).astype(float)
+            df[col] = df[col].rename(f"{col} [{unit}]")
+
+    if "Dead Time" in cols:
+        df["Dead Time (rel)"] = 0.01 * (df["Dead Time"].str.split(" ").str[0]).astype(float)
+
+    df = df.drop(columns = TO_DROP, errors = "ignore")
+    return df
+
+
 def parse_RPT(folder):
     if not os.path.isdir(f"./{folder}"):
         raise Exception(f"Folder {folder} not found. Consider creating it and moving RPT files there.")
@@ -83,12 +111,7 @@ def parse_RPT(folder):
 
         name = (rpt_file.split('.')[-2]).split('/')[-1]
 
-        cols = res_df.columns.tolist()
-        for col in DATETIME_COLUMNS:
-            print(col)
-            if col in cols:
-                print("AAA")
-                res_df[col] = pd.to_pydatetime(res_df[col])
+        res_df = polish_dtypes(res_df)
 
         res_df.to_csv(f"parsed_reports/{name}.csv")
 
