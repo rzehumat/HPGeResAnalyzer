@@ -154,9 +154,6 @@ parsed_reports_swap/M6-C2-Udepl-3.csv
 parsed_reports_swap/M2-C1-Udepl-120.csv
 aux_data/origins2.json
 aux_data/origins.json
-aux_data/origins.json
-aux_data/origins.json
-aux_data/origins.json
-aux_data/origins.json
-aux_data/origins.json
-aux_data/origins.json
+
+!ig_db/info_all.pq
+!ig_db/ig_all.pq
