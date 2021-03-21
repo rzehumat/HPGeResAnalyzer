@@ -1,10 +1,12 @@
 import glob
 import os
-import pandas as pd
-from pathlib import Path
 import re
-from sys import argv
+import datetime
+import pandas as pd
 import dateutil.parser as dparser
+from sys import argv
+from pathlib import Path
+
 
 
 def parse_header(lines):
@@ -17,7 +19,7 @@ def parse_header(lines):
                 new_key, new_val = [x.strip() for x in line.split(':',maxsplit=1)]
                 if new_val == "":
                     continue
-                if re.match("\d{1,2}\.\d{1,2}\.\d{2,4}[ \d{1,2}\:\d{1,2}\:\d{1,2}]*", new_val):
+                if re.match(r"\d{1,2}\.\d{1,2}\.\d{2,4}[ \d{1,2}\:\d{1,2}\:\d{1,2}]*", new_val):
                     new_val = dparser.parse(new_val, fuzzy=True)
                     datetime_columns.append(new_key)
 
@@ -60,7 +62,7 @@ def parse_one_RPT(rpt_file):
     header_lines = lines[0:split_num]
     data_lines = lines[split_num:-1]
 
-    header, datetime_columns = parse_header(header_lines)
+    header, _ = parse_header(header_lines)
     data = parse_data(data_lines)
 
     meta_df = pd.DataFrame(header, index=[0])
@@ -69,6 +71,34 @@ def parse_one_RPT(rpt_file):
     res = res.fillna(method='ffill')
     
     return res
+
+def polish_dtypes(df):
+    DATETIME_COLUMN = "Report Generated On"
+    UNSIGNED_COLUMNS = ["Pk", "Area", "Bkgnd", "Left", "PW", "Sample Identification"]
+    INT_COLUMNS = ["IT", "Sample Type"]
+    FLOAT_COLUMNS = ["Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", "Peak Locate Threshold"]
+    TO_DROP = ["Sample Geometry", "Peak Locate Range (in channels)", "Sample Size", "Dead Time", "Peak Analysis Report                    26.11.2020  5", "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", "Use Fixed FWHM", "Peak Fit Engine Name"]
+    cols = df.columns.tolist()
+    if DATETIME_COLUMN in cols:
+        df[DATETIME_COLUMN] = pd.to_datetime(df[DATETIME_COLUMN])
+    for col in UNSIGNED_COLUMNS:
+        df[col] = pd.to_numeric(df[col], downcast = "unsigned")
+    for col in INT_COLUMNS:
+        df[col] = pd.to_numeric(df[col], downcast = "integer")
+    for col in FLOAT_COLUMNS:
+        df[col] = pd.to_numeric(df[col], downcast = "float")
+    for col in ["Real Time", "Live Time", "Identification Energy Tolerance"]:
+        if col in cols:
+            unit = str(df[col][0]).split()[-1]
+            df[col] = (df[col].str.split(" ").str[0]).astype(float)
+            df[col] = df[col].rename(f"{col} [{unit}]")
+
+    if "Dead Time" in cols:
+        df["Dead Time (rel)"] = 0.01 * (df["Dead Time"].str.split(" ").str[0]).astype(float)
+
+    df = df.drop(columns = TO_DROP, errors = "ignore")
+    return df
+
 
 def parse_RPT(folder):
     if not os.path.isdir(f"./{folder}"):
@@ -80,8 +110,14 @@ def parse_RPT(folder):
         res_df = parse_one_RPT(rpt_file)
 
         name = (rpt_file.split('.')[-2]).split('/')[-1]
+
+        res_df = polish_dtypes(res_df)
+
         res_df.to_csv(f"parsed_reports/{name}.csv")
 
 if __name__ == "__main__":
     folder = argv[1]
+
+    DATETIME_COLUMNS = ["Report Generated On"]
+
     parse_RPT(folder)

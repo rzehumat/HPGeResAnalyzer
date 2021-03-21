@@ -157,3 +157,6 @@ aux_data/origins.json
 
 !ig_db/info_all.pq
 !ig_db/ig_all.pq
+scratch.py
+
+backup_with_Ig
