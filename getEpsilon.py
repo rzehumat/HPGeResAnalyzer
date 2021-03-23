@@ -2,9 +2,17 @@ import pandas as pd
 import glob
 import numpy as np
 import os
+import re
+
 from math import modf, isnan
 from pathlib import Path
 from sys import argv
+
+def file_name_parse(file_name):
+    name = file_name.split("/")[-1].split(".")[0]
+    isotope, geometry = name.split("_g")
+    A, element = re.split(r'(\d+)(\w+)', isotope)#[-3:-1]
+    return A, element, geometry
 
 def add_epsilon_dir(parsed_dir):
     if not os.path.isdir(parsed_dir):

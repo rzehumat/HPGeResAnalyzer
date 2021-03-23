@@ -8,7 +8,6 @@ from sys import argv
 from pathlib import Path
 
 
-
 def parse_header(lines):
     header = {}
     datetime_columns = []
@@ -69,6 +68,8 @@ def parse_one_RPT(rpt_file):
     rpt_df = pd.DataFrame(data)
     res = pd.concat([rpt_df, meta_df], axis=1)
     res = res.fillna(method='ffill')
+        
+    res = polish_dtypes(res)
     
     return res
 
@@ -77,7 +78,7 @@ def polish_dtypes(df):
     UNSIGNED_COLUMNS = ["Pk", "Area", "Bkgnd", "Left", "PW", "Sample Identification"]
     INT_COLUMNS = ["IT", "Sample Type"]
     FLOAT_COLUMNS = ["Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", "Peak Locate Threshold"]
-    TO_DROP = ["Sample Geometry", "Peak Locate Range (in channels)", "Sample Size", "Dead Time", "Peak Analysis Report                    26.11.2020  5", "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", "Use Fixed FWHM", "Peak Fit Engine Name"]
+    TO_DROP = ["Sample Geometry", "Peak Locate Range (in channels)", "Sample Size", "Dead Time", "Peak Analysis Report                    26.11.2020  5", "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW", "Fit", "Filename", "Sample Identification"]
     cols = df.columns.tolist()
     if DATETIME_COLUMN in cols:
         df[DATETIME_COLUMN] = pd.to_datetime(df[DATETIME_COLUMN])
@@ -111,7 +112,6 @@ def parse_RPT(folder):
 
         name = (rpt_file.split('.')[-2]).split('/')[-1]
 
-        res_df = polish_dtypes(res_df)
 
         res_df.to_csv(f"parsed_reports/{name}.csv")
 
