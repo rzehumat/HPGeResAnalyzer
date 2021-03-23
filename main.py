@@ -41,7 +41,7 @@ if mode == "0":
             raw_df = rptParser.parse_one_RPT(raw_file)
             df = getIg.append_Igamma(raw_df, A, element, ig_all_df)
             file_name = raw_file.split("/")[-1].split(".")[-2]
-            raw_df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+            df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
 
 
 # if mode == "1":

@@ -55,12 +55,16 @@ def append_Igamma(parsed_df, A, element, ig_all_df):
 def add_Ig(df, ig, ig_thr = 1.0):
     # UGLY, never for-loop in pandas
     added_df = df
-    for row in df.iterrows():
+    print(df.shape[0])
+    #for row in df.iterrows():
+    for row in range(df.shape[0]):
         # WTF some pandas iterrows bizzare
-        row = row[1]
+        # row = row[1]
+        # print(df.iloc[row])
+        # print(df.loc[row, "Energy"])
 
-        suitable_lines = ig[(row["Energy"] - row["FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (row["Energy"] + row["FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr]
-        suitable_lines["Energy"] = float(row["Energy"])
+        suitable_lines = ig[(df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr]
+        suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"].view()
         added_df = added_df.append(suitable_lines)
 
     print("Ig added")
