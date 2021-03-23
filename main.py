@@ -27,17 +27,19 @@ if mode == "0":
         raise Exception(f"Folder {raw_dir} not found. Consider creating it and moving RPT files there.")
     else:
         Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+        ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
         for raw_file in glob.iglob(f"{raw_dir}/*.RPT"):
             try:
                 A, element, geometry = getEpsilon.file_name_parse(raw_file)
             except:
                 print(f"Info not detected from file name '{raw_file.split('/')[-1]}'.")
-                print("Add it manually.")
+                print("If known, add it manually. If not, leave blank.")
                 A = input("A = ")
-                element = input("element = ")
+                element = input("Element (leave blank if unknown)= ")
                 geometry = input("Geometry (3/30/80/120/250 mm): ")
             
             raw_df = rptParser.parse_one_RPT(raw_file)
+            df = getIg.append_Igamma(raw_df, A, element, ig_all_df)
             file_name = raw_file.split("/")[-1].split(".")[-2]
             raw_df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
 

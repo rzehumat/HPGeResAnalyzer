@@ -2,10 +2,13 @@ import glob
 import os
 import re
 import datetime
+
 import pandas as pd
 import dateutil.parser as dparser
+
 from sys import argv
 from pathlib import Path
+from getIg import permute_columns
 
 
 def parse_header(lines):
@@ -70,6 +73,12 @@ def parse_one_RPT(rpt_file):
     res = res.fillna(method='ffill')
         
     res = polish_dtypes(res)
+    res = permute_columns(res, [
+                                "Pk", "Energy", "Area", "Live Time", "Real Time", 
+                                "Dead Time (rel)", "Acquisition Started", "Bkgnd", 
+                                "FWHM", "Channel", "Cts/Sec", "%err"
+                                ]
+    )
     
     return res
 
