@@ -29,7 +29,7 @@ def permute_columns(df, first_cols):
 
 def append_Igamma(parsed_df, A, element, ig_all_df):
     if len(A) > 0:
-        ig_df = ig_all_df.loc[f"{A}{element}"]
+        ig_df = ig_all_df.loc[[f"{A}{element}", f"{int(A)+1}{element}",f"{int(A)+2}{element}"]]
     else:
         ig_df = ig_all_df
     

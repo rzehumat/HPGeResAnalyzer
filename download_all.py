@@ -285,6 +285,7 @@ def extract_info(A, element, Z):
             info_df = info_df.drop(columns=["sigm_Half life"])
         if "sigm_Sp(keV)" in columns:
             info_df = info_df.drop(columns=["sigm_Sp(keV)"])
+        info_df["Z"] = Z
         info_df.to_csv(f"downloads/ig_db/info_{A}{element}.csv")
 
 if __name__ == "__main__":
