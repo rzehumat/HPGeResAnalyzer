@@ -2,11 +2,13 @@ import glob
 import os
 import re
 import datetime
+
 import pandas as pd
 import dateutil.parser as dparser
+
 from sys import argv
 from pathlib import Path
-
+from getIg import permute_columns
 
 
 def parse_header(lines):
@@ -69,15 +71,23 @@ def parse_one_RPT(rpt_file):
     rpt_df = pd.DataFrame(data)
     res = pd.concat([rpt_df, meta_df], axis=1)
     res = res.fillna(method='ffill')
+        
+    res = polish_dtypes(res)
+    res = permute_columns(res, [
+                                "Pk", "Energy", "Area", "Live Time", "Real Time", 
+                                "Dead Time (rel)", "Acquisition Started", "Bkgnd", 
+                                "FWHM", "Channel", "Cts/Sec", "%err"
+                                ]
+    )
     
     return res
 
 def polish_dtypes(df):
     DATETIME_COLUMN = "Report Generated On"
-    UNSIGNED_COLUMNS = ["Pk", "Area", "Bkgnd", "Left", "PW", "Sample Identification"]
+    UNSIGNED_COLUMNS = ["Area", "Bkgnd", "Left", "PW", "Sample Identification"]
     INT_COLUMNS = ["IT", "Sample Type"]
     FLOAT_COLUMNS = ["Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", "Peak Locate Threshold"]
-    TO_DROP = ["Sample Geometry", "Peak Locate Range (in channels)", "Sample Size", "Dead Time", "Peak Analysis Report                    26.11.2020  5", "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", "Use Fixed FWHM", "Peak Fit Engine Name"]
+    TO_DROP = ["Sample Geometry", "Peak Locate Range (in channels)", "Sample Size", "Dead Time", "Peak Analysis Report                    26.11.2020  5", "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW", "Fit", "Filename", "Sample Identification", "Sample Type", "Peak Locate Threshold", "Peak Area Range (in channels)", "Efficiency ID"]
     cols = df.columns.tolist()
     if DATETIME_COLUMN in cols:
         df[DATETIME_COLUMN] = pd.to_datetime(df[DATETIME_COLUMN])
@@ -111,13 +121,10 @@ def parse_RPT(folder):
 
         name = (rpt_file.split('.')[-2]).split('/')[-1]
 
-        res_df = polish_dtypes(res_df)
 
         res_df.to_csv(f"parsed_reports/{name}.csv")
 
 if __name__ == "__main__":
     folder = argv[1]
-
     DATETIME_COLUMNS = ["Report Generated On"]
-
     parse_RPT(folder)

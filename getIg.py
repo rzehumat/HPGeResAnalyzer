@@ -5,148 +5,60 @@ import os
 import glob
 import re
 import urllib
-import shutil
 
-from bs4 import BeautifulSoup
 from pathlib import Path
 from sys import argv
-from termcolor import colored
+from getEpsilon import file_name_parse
+
 
 def append_Igamma_dir(parsed_dir):
     if not os.path.isdir(parsed_dir):
         raise Exception(f"Directory '{parsed_dir}' not found. Consider creating it and moving parsed files there.")
 
+    ig_df = pd.read_parquet("aux_data/ig_all.pq")
     for parsed_file in glob.iglob(f"{parsed_dir}/*.csv"):
-        append_Igamma(parsed_file)
+        A, element, _ = file_name_parse(parsed_file)
+        df = pd.read_csv(parsed_file, index_col=0)
+        append_Igamma(df, A, element, ig_df)
 
-def append_Igamma(file):
-    A, element = re.split(r'(\d+)(\w+)', file)[-3:-1]
-    print(f"File is {file}")
-    print(A)
-    element = element.split('_g')[0]
-    print(element)
+def permute_columns(df, first_cols):
+    old_column_order = df.columns.tolist()
+    new_cols = first_cols + list(set(old_column_order) - set(first_cols))
+    df = df[new_cols]
+    return df
 
-    Path("./ig_db").mkdir(parents=True, exist_ok=True)
-    if os.path.isfile(f"ig_db/{A}{element}.csv"):
-        ig_df = pd.read_csv(f"ig_db/{A}{element}.csv", header=0, index_col=0)
-        print("Reading the csv with gammas.")
+def append_Igamma(parsed_df, A, element, ig_all_df):
+    if len(A) > 0:
+        ig_df = ig_all_df.loc[f"{A}{element}"]
     else:
-        Path("./downloads").mkdir(parents=True, exist_ok=True)
-        if os.path.isfile(f"downloads/{A}{element}.html"):
-            err = extract_Igamma(A, element)
-            if err > 0:
-                shutil.copy(file, "with_Ig/")
-                return "Are you sure such element has gamma lines?"
-            ig_df = pd.read_csv(f"ig_db/{A}{element}.csv", header=0, index_col=0)
-            print("Reading the csv with gammas.")
-        else:
-            download(A, element)
-            err = extract_Igamma(A, element)
-            if err > 0:
-                shutil.copy(file, "with_Ig/")
-                return "Are you sure such element has gamma lines?"
-            ig_df = pd.read_csv(f"ig_db/{A}{element}.csv", header=0, index_col=0)
-            print("Reading the csv with gammas.")
+        ig_df = ig_all_df
     
-    parsed_df = pd.read_csv(file, index_col=0)
     joined_df = add_Ig(parsed_df, ig_df)
     
     Path("./with_Ig").mkdir(parents=True, exist_ok=True)
-    joined_df.to_csv(f"with_Ig/{file.split('/')[-1]}")
+    joined_df = joined_df.sort_values(by = ["Energy", "Area", "Ig"], ascending = [True, False, False])
+    joined_df["Ig [%]"] = 100 * joined_df["Ig"].rename("Ig [%]")
+    # joined_df = joined_df.drop(columns = ["Ig"])
+    joined_df = permute_columns(joined_df, ["Energy", "E_tab", "Ig [%]", "Area", "Isotope", "sigm_E", "sigm_Ig", "FWHM", "%err", "Live Time", "Real Time", "Dead Time (rel)"])
 
-def add_Ig(df, ig):
-    a = np.empty((df.shape[0], 2))
-    a[:] = np.nan
-    df[["E_tab", "Ig"]] = a
+    return joined_df
+
+
+def add_Ig(df, ig, ig_thr = 1.0):
     # UGLY, never for-loop in pandas
-    for row_no in range(df.shape[0]):
-        for ig_row_no in range(ig.shape[0]):
-            if (df["Energy"] - df["FWHM"]).iloc[row_no] > ig["E_tab"].iloc[ig_row_no]:
-                continue
-            elif (df["Energy"] + df["FWHM"]).iloc[row_no] < ig["E_tab"].iloc[ig_row_no]:
-                break
-            else:
-                df.loc[row_no, ["E_tab", "Ig"]] = ig.loc[ig_row_no, ["E_tab", "Ig"]]
+    added_df = df
+    print(df.shape[0])
+    for row in range(df.shape[0]):
+        condition = (df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr
+
+        suitable_lines = ig[condition]
+        suitable_lines["Isotope"] = ig[condition].index
+        suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"]
+
+        added_df = added_df.append(suitable_lines)
+
     print("Ig added")
-    return df
-
-def getZ(element):
-    element_Z ={
-        "H": 1,
-        "He": 2,
-        "Xe": 54,
-        "Eu": 63,
-        "U": 92,
-        "Pu": 94
-    }
-    return element_Z[element]
-
-def download(A, element):
-    A = int(A)
-    if A < 10:
-        str_A = '00' + str(A)
-    elif A < 100:
-        str_A = '0' + str(A)
-    else:
-        str_A = str(A)
-
-    url = f"http://nucleardata.nuclear.lu.se/toi/nuclide.asp?iZA={getZ(element)}0{str_A}"
-    urllib.request.urlretrieve (url, f"downloads/{A}{element}.html")
-    print(f"File {A}{element}.html downloaded.")
-
-def extract_Igamma(A, element):
-    html_file = open(f"downloads/{A}{element}.html", "r")
-    soup = BeautifulSoup(html_file.read(), 'lxml')
-    
-    try:
-        gammas_table = soup.find_all("table")[4]
-        gammas_rows = gammas_table.find_all('tr')[3:-1]
-    except:
-        A = int(A)
-        if A < 10:
-            str_A = '00' + str(A)
-        elif A < 100:
-            str_A = '0' + str(A)
-        print(colored(f"Seems like there are no gamma-lines known for isotope {A}{element}.", 'red'))
-        print(colored("Check yellow pages for reference.", 'yellow'))
-        print(colored(f"http://nucleardata.nuclear.lu.se/toi/nuclide.asp?iZA={getZ(element)}0{str_A}", 'yellow'))
-        return 1
-    energy = []
-    sigm_energy = []
-    i = []
-    sigm_i = []
-
-    for row in gammas_rows:
-        cells = row.find_all('td')
-        
-        e_val = cells[0].get_text(strip=True)
-        i_val = cells[1].get_text(strip=True)
-        try:
-            ig_val = float(i_val[:-1])
-            sigm_ig_val = float(i_val[-1])
-        except:
-            ig_val = float('NaN')
-            sigm_ig_val = float('NaN')
-       
-        energy.append(float(e_val[:-1]))
-        sigm_energy.append(int(e_val[-1]))
-        i.append(ig_val)
-        
-        sigm_i.append(sigm_ig_val)
-
-
-    df_dict = {
-        "E_tab": energy,
-        "sigm_E": sigm_energy, 
-        "Ig": i,
-        "sigm_Ig": sigm_i
-        }
-    df = pd.DataFrame(df_dict)
-    df_name = f'ig_db/{A}{element}.csv'
-    df.to_csv(df_name)
-   
-    print(f"Ig extracted from file 'downloads/{A}{element}.html' into '{df_name}'.")
-    return 0
+    return added_df
 
 if __name__ == "__main__":
     folder = argv[1]
