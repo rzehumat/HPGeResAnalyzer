@@ -63,6 +63,8 @@ def add_Ig(df, ig, ig_thr = 1.0):
         # print(df.iloc[row])
         # print(df.loc[row, "Energy"])
 
+        
+
         suitable_lines = ig[(df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr]
         suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"].view()
         added_df = added_df.append(suitable_lines)
