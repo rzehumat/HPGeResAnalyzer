@@ -29,6 +29,7 @@ if mode == "0":
         Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
         ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
         info_df = pd.read_parquet("aux_data/info_all.pq")
+        yield_df = pd.read_csv("aux_data/fissionYield_238U.csv", index_col = 0)
         CALIBRATION_PATH = "aux_data/epsilons.csv"
         eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
         for raw_file in glob.iglob(f"{raw_dir}/*.RPT"):
@@ -47,7 +48,7 @@ if mode == "0":
 
             file_name = raw_file.split("/")[-1].split(".")[-2]
 
-            df_ig_eps_orig = addOrigin(df_ig_eps, info_df)
+            df_ig_eps_orig = addOrigin(df_ig_eps, info_df, yield_df)
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
             df_ig_eps_orig[(df_ig_eps_orig["Area"] > 0) | (df_ig_eps_orig["Prod_mode_Fission product"] == True)].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv", index=False)
             df_ig_eps_orig[(df_ig_eps_orig["Prod_mode_Fast neutron activation"] == True) | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"] == True)].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv", index=False)
