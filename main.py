@@ -28,6 +28,8 @@ if mode == "0":
     else:
         Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
         ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
+        CALIBRATION_PATH = "aux_data/epsilons.csv"
+        eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
         for raw_file in glob.iglob(f"{raw_dir}/*.RPT"):
             try:
                 A, element, geometry = getEpsilon.file_name_parse(raw_file)
@@ -39,9 +41,11 @@ if mode == "0":
                 geometry = input("Geometry (3/30/80/120/250 mm): ")
             
             raw_df = rptParser.parse_one_RPT(raw_file)
-            df = getIg.append_Igamma(raw_df, A, element, ig_all_df)
+            df_ig = getIg.append_Igamma(raw_df, A, element, ig_all_df)
+            df_ig_eps = getEpsilon.add_epsilon_file(df_ig, geometry, eps_df)
+
             file_name = raw_file.split("/")[-1].split(".")[-2]
-            df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+            df_ig_eps.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
 
 
 # if mode == "1":
