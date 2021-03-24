@@ -126,7 +126,5 @@ def parse_RPT(folder):
 
 if __name__ == "__main__":
     folder = argv[1]
-
     DATETIME_COLUMNS = ["Report Generated On"]
-
     parse_RPT(folder)

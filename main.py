@@ -7,16 +7,15 @@ import os
 import pandas as pd
 
 from pathlib import Path
-#import searchRadiation
 
 OUTPUT_DIR = "out"
 
 print("Available modes (default 0):")
 print("0 ... 'Process dir'")
-print("1 ... 'Nuclide search': We know the isotope, peak detection efficiency and geometry")
-print("Parses RPT files, downloads and adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
-print("2 ... 'Radiation search': We do NOT know the isotopes, peak detection efficiency and geometry")
-print("Parses RPT files, searches the radiation, adds possible isotopes to peaks, adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
+# print("1 ... 'Nuclide search': We know the isotope, peak detection efficiency and geometry")
+# print("Parses RPT files, downloads and adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
+# print("2 ... 'Radiation search': We do NOT know the isotopes, peak detection efficiency and geometry")
+# print("Parses RPT files, searches the radiation, adds possible isotopes to peaks, adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
 
 print("Select mode:")
 mode = input("[0]/[1]/[2] ") or "0"
@@ -48,7 +47,6 @@ if mode == "0":
             df_ig_eps.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
 
 
-# if mode == "1":
 elif mode == "1":
     print("Expected filenames are like 1H_g80.RPT")
     # rpt_dir = input("Relative path to directory with RPT files: ")
