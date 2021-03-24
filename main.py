@@ -49,6 +49,8 @@ if mode == "0":
 
             df_ig_eps_orig = addOrigin(df_ig_eps, info_df)
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+            df_ig_eps_orig[(df_ig_eps_orig["Area"] > 0) | (df_ig_eps_orig["Prod_mode_Fission product"] == True)].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv", index=False)
+            df_ig_eps_orig[(df_ig_eps_orig["Prod_mode_Fast neutron activation"] == True) | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"] == True)].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv", index=False)
 
 
 elif mode == "1":
