@@ -7,6 +7,7 @@ import os
 import pandas as pd
 
 from pathlib import Path
+from addOrigin import addOrigin
 
 OUTPUT_DIR = "out"
 
@@ -27,6 +28,7 @@ if mode == "0":
     else:
         Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
         ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
+        info_df = pd.read_parquet("aux_data/info_all.pq")
         CALIBRATION_PATH = "aux_data/epsilons.csv"
         eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
         for raw_file in glob.iglob(f"{raw_dir}/*.RPT"):
@@ -44,7 +46,9 @@ if mode == "0":
             df_ig_eps = getEpsilon.add_epsilon_file(df_ig, geometry, eps_df)
 
             file_name = raw_file.split("/")[-1].split(".")[-2]
-            df_ig_eps.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+
+            df_ig_eps_orig = addOrigin(df_ig_eps, info_df)
+            df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
 
 
 elif mode == "1":
