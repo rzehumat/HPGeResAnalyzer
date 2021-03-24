@@ -53,12 +53,12 @@ if mode == "0":
             df_ig_eps_orig[(df_ig_eps_orig["Prod_mode_Fast neutron activation"] == True) | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"] == True)].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv", index=False)
 
 
-elif mode == "1":
-    print("Expected filenames are like 1H_g80.RPT")
-    # rpt_dir = input("Relative path to directory with RPT files: ")
-    rptParser.parse_RPT("raw_reports")
-    getIg.append_Igamma_dir("parsed_reports/")
-    getEpsilon.add_epsilon_dir("with_Ig/")
-elif mode == "2":
-    rptParser.parse_RPT("naa_raw")
-    #searchRadiation.search_dir("parsed_reports")
+# elif mode == "1":
+#     print("Expected filenames are like 1H_g80.RPT")
+#     # rpt_dir = input("Relative path to directory with RPT files: ")
+#     rptParser.parse_RPT("raw_reports")
+#     getIg.append_Igamma_dir("parsed_reports/")
+#     getEpsilon.add_epsilon_dir("with_Ig/")
+# elif mode == "2":
+#     rptParser.parse_RPT("naa_raw")
+#     #searchRadiation.search_dir("parsed_reports")
