@@ -1,7 +1,6 @@
 import glob
 import os
 import re
-import datetime
 
 import pandas as pd
 import dateutil.parser as dparser
@@ -26,7 +25,7 @@ def parse_header(lines):
                     datetime_columns.append(new_key)
 
                 header[new_key] = new_val
-    
+
     return header, datetime_columns
 
 
@@ -42,7 +41,7 @@ def parse_data(lines):
         data[key] = []
 
     for line in lines[1:]:
-        if not "Bkgnd" in line:
+        if "Bkgnd" not in line:
             if len(line.split()) == params_no:
                 # UGLY, do it in one line
                 for i in range(params_no):
@@ -78,25 +77,33 @@ def parse_one_RPT(rpt_file):
                                 "Dead Time (rel)", "Acquisition Started", "Bkgnd", 
                                 "FWHM", "Channel", "Cts/Sec", "%err"
                                 ]
-    )
+                         )
     
     return res
+
 
 def polish_dtypes(df):
     DATETIME_COLUMN = "Report Generated On"
     UNSIGNED_COLUMNS = ["Area", "Bkgnd", "Left", "PW", "Sample Identification"]
     INT_COLUMNS = ["IT", "Sample Type"]
     FLOAT_COLUMNS = ["Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", "Peak Locate Threshold"]
-    TO_DROP = ["Sample Geometry", "Peak Locate Range (in channels)", "Sample Size", "Dead Time", "Peak Analysis Report                    26.11.2020  5", "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW", "Fit", "Filename", "Sample Identification", "Sample Type", "Peak Locate Threshold", "Peak Area Range (in channels)", "Efficiency ID"]
+    TO_DROP = [
+        "Sample Geometry", "Peak Locate Range (in channels)", "Sample Size",
+        "Dead Time",
+        "Peak Analysis Report                    26.11.2020  5", 
+        "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", 
+        "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW", "Fit", "Filename", 
+        "Sample Identification", "Sample Type", "Peak Locate Threshold", 
+        "Peak Area Range (in channels)", "Efficiency ID"]
     cols = df.columns.tolist()
     if DATETIME_COLUMN in cols:
         df[DATETIME_COLUMN] = pd.to_datetime(df[DATETIME_COLUMN])
     for col in UNSIGNED_COLUMNS:
-        df[col] = pd.to_numeric(df[col], downcast = "unsigned")
+        df[col] = pd.to_numeric(df[col], downcast="unsigned")
     for col in INT_COLUMNS:
-        df[col] = pd.to_numeric(df[col], downcast = "integer")
+        df[col] = pd.to_numeric(df[col], downcast="integer")
     for col in FLOAT_COLUMNS:
-        df[col] = pd.to_numeric(df[col], downcast = "float")
+        df[col] = pd.to_numeric(df[col], downcast="float")
     for col in ["Real Time", "Live Time", "Identification Energy Tolerance"]:
         if col in cols:
             unit = str(df[col][0]).split()[-1]
@@ -106,7 +113,7 @@ def polish_dtypes(df):
     if "Dead Time" in cols:
         df["Dead Time (rel)"] = 0.01 * (df["Dead Time"].str.split(" ").str[0]).astype(float)
 
-    df = df.drop(columns = TO_DROP, errors = "ignore")
+    df = df.drop(columns=TO_DROP, errors="ignore")
     return df
 
 
