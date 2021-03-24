@@ -43,10 +43,10 @@ def append_Igamma(parsed_df, A, element, ig_all_df):
     joined_df = add_Ig(parsed_df, ig_df)
     
     Path("./with_Ig").mkdir(parents=True, exist_ok=True)
-    joined_df = permute_columns(joined_df, ["Energy", "E_tab", "Ig", "Area", "sigm_E", "sigm_Ig", "FWHM", "%err", "Live Time", "Real Time", "Dead Time (rel)"])
     joined_df = joined_df.sort_values(by = ["Energy", "Area", "Ig"], ascending = [True, False, False])
-    joined_df["Ig"] = 100 * joined_df["Ig"]
-    joined_df["Ig"] = 100 * joined_df["Ig"].rename("Ig [%]")
+    joined_df["Ig [%]"] = 100 * joined_df["Ig"].rename("Ig [%]")
+    joined_df = joined_df.drop(columns = ["Ig"])
+    joined_df = permute_columns(joined_df, ["Energy", "E_tab", "Ig [%]", "Area", "Isotope", "sigm_E", "sigm_Ig", "FWHM", "%err", "Live Time", "Real Time", "Dead Time (rel)"])
 
     # joined_df.to_csv(f"with_Ig/{A}{element}.csv", index = False)
     return joined_df
@@ -63,10 +63,18 @@ def add_Ig(df, ig, ig_thr = 1.0):
         # print(df.iloc[row])
         # print(df.loc[row, "Energy"])
 
-        
+        condition = (df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr
 
-        suitable_lines = ig[(df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr]
-        suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"].view()
+        suitable_lines = ig[condition]
+        suitable_lines["Isotope"] = ig[condition].index
+        suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"]
+
+
+        #suitable_lines = ig[(df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr]
+        #suitable_lines = ig[(df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr]
+        # suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"].view()
+        # suitable_lines.loc[:, ("Isotope")] = df.loc[row].index.values
+
         added_df = added_df.append(suitable_lines)
 
     print("Ig added")
