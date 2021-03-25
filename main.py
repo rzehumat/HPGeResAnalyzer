@@ -23,10 +23,11 @@ print("Select mode:")
 mode = input("[0]/[1]/[2] ") or "0"
 
 if mode == "0":
-    raw_dir = input("Enter relative path to directory (press enter to keep default 'raw_reports': ") or "raw_reports"
+    raw_dir = input("Enter relative path to directory"
+                    "(press enter to keep default 'raw_reports': ") or "raw_reports"
     if not os.path.isdir(raw_dir):
         raise Exception(f"Folder {raw_dir} not found."
-                         "Consider creating it and moving RPT files there.")
+                        "Consider creating it and moving RPT files there.")
     else:
         Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
         ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
@@ -35,15 +36,28 @@ if mode == "0":
         mu_df = pd.read_csv("aux_data/mu_92.csv", index_col=0)
         CALIBRATION_PATH = "aux_data/epsilons.csv"
         eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
+        kwargs = dict.fromkeys(
+            ["A", "element", "geometry", "rho", "d", "mass",
+             "molar_mass", "t_irr", "irr_start_str"])
         for raw_file in glob.iglob(f"{raw_dir}/*.RPT"):
             try:
-                A, element, geometry = getEpsilon.file_name_parse(raw_file)
+                a, elem, geom = getEpsilon.file_name_parse(raw_file)
             except ValueError:
-                print(f"Info not detected from file name '{raw_file.split('/')[-1]}'.")
+                print("Info not detected from file name'"
+                      f"{raw_file.split('/')[-1]}'.")
                 print("If known, add it manually. If not, leave blank.")
-                A = input("A = ")
-                element = input("Element (leave blank if unknown)= ")
-                geometry = input("Geometry (3/30/80/120/250 mm): ")
+                a = input("A = ")
+                elem = input("Element (leave blank if unknown)= ")
+                geom = input("Geometry (3/30/80/120/250 mm): ")
+
+            rho = input("Density of foil in g.cm^-3: ")
+            d = input("Foil thickness in cm: ")
+            mass = input("Foil mass in g: ")
+            molar_mass = input("Foil material molar mass g.mol^-1: ")
+
+            kwargs["A"].append(a)
+            kwargs["element"].append(elem)
+            kwargs["geometry"].append(geom)
 
             raw_df = rptParser.parse_one_RPT(raw_file)
             df_ig = getIg.append_Igamma(raw_df, A, element, ig_all_df)
