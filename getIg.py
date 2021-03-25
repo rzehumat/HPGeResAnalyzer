@@ -35,7 +35,7 @@ def append_Igamma(parsed_df, A, element, ig_all_df):
     joined_df = add_Ig(parsed_df, ig_df)
     
     Path("./with_Ig").mkdir(parents=True, exist_ok=True)
-    joined_df = joined_df.sort_values(by=["Energy", "Area", "Ig"], 
+    joined_df = joined_df.sort_values(by=["Energy", "Pk", "Ig"], 
                                       ascending=[True, False, False])
     joined_df["Ig [%]"] = 100 * joined_df["Ig"].rename("Ig [%]")
     # joined_df = joined_df.drop(columns = ["Ig"])
