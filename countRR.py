@@ -24,7 +24,7 @@ def countRR(df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
     k = (mu * rho * d) / (1-np.exp(-mu * rho * d))
     lam = np.log(2) / df["Half-life [s]"]
     N = mass*AVOGADRO/molar_mass
-    irr_start = pd.to_datetime(irr_start_str)
+    irr_start = pd.to_datetime(irr_start_str, dayfirst=True)
     irr_end = irr_start + pd.to_timedelta(t_irr, "s")
     delta_t = pd.to_datetime(df["Acquisition Started"][0]) - irr_end
     delta_t = delta_t.total_seconds()
