@@ -17,10 +17,15 @@ def parse_header(lines):
     for line in lines:
         if not line.isspace():
             if ":" in line:
-                new_key, new_val = [x.strip() for x in line.split(':',maxsplit=1)]
+                new_key, new_val = [
+                    x.strip() for x in line.split(':', maxsplit=1)
+                    ]
                 if new_val == "":
                     continue
-                if re.match(r"\d{1,2}\.\d{1,2}\.\d{2,4}[ \d{1,2}\:\d{1,2}\:\d{1,2}]*", new_val):
+                if re.match(
+                    r"\d{1,2}\.\d{1,2}\.\d{2,4}[ \d{1,2}\:\d{1,2}\:\d{1,2}]*", 
+                    new_val
+                           ):
                     new_val = dparser.parse(new_val, fuzzy=True)
                     datetime_columns.append(new_key)
 
@@ -70,15 +75,14 @@ def parse_one_RPT(rpt_file):
     rpt_df = pd.DataFrame(data)
     res = pd.concat([rpt_df, meta_df], axis=1)
     res = res.fillna(method='ffill')
-        
+
     res = polish_dtypes(res)
     res = permute_columns(res, [
-                                "Pk", "Energy", "Area", "Live Time", "Real Time", 
-                                "Dead Time (rel)", "Acquisition Started", "Bkgnd", 
+                                "Pk", "Energy", "Area", "Live Time", 
+                                "Real Time", "Dead Time (rel)", 
+                                "Acquisition Started", "Bkgnd", 
                                 "FWHM", "Channel", "Cts/Sec", "%err"
-                                ]
-                         )
-    
+                                ])
     return res
 
 
@@ -86,13 +90,18 @@ def polish_dtypes(df):
     DATETIME_COLUMN = "Report Generated On"
     UNSIGNED_COLUMNS = ["Area", "Bkgnd", "Left", "PW", "Sample Identification"]
     INT_COLUMNS = ["IT", "Sample Type"]
-    FLOAT_COLUMNS = ["Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", "Peak Locate Threshold"]
+    FLOAT_COLUMNS = [
+        "Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", 
+        "Peak Locate Threshold"
+        ]
     TO_DROP = [
         "Sample Geometry", "Peak Locate Range (in channels)", "Sample Size",
         "Dead Time",
         "Peak Analysis Report                    26.11.2020  5", 
-        "Peak Analysis From Channel", "Peak Search Sensitivity", "Max Iterations", 
-        "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW", "Fit", "Filename", 
+        "Peak Analysis From Channel", "Peak Search Sensitivity", 
+        "Max Iterations", 
+        "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW", 
+        "Fit", "Filename", 
         "Sample Identification", "Sample Type", "Peak Locate Threshold", 
         "Peak Area Range (in channels)", "Efficiency ID"]
     cols = df.columns.tolist()
@@ -111,7 +120,9 @@ def polish_dtypes(df):
             df[col] = df[col].rename(f"{col} [{unit}]")
 
     if "Dead Time" in cols:
-        df["Dead Time (rel)"] = 0.01 * (df["Dead Time"].str.split(" ").str[0]).astype(float)
+        df["Dead Time (rel)"] = 0.01 * (
+            df["Dead Time"].str.split(" ").str[0]
+            ).astype(float)
 
     df = df.drop(columns=TO_DROP, errors="ignore")
     return df
@@ -119,7 +130,8 @@ def polish_dtypes(df):
 
 def parse_RPT(folder):
     if not os.path.isdir(f"./{folder}"):
-        raise Exception(f"Folder {folder} not found. Consider creating it and moving RPT files there.")
+        raise Exception(f"Folder {folder} not found."
+                        "Consider creating it and moving RPT files there.")
 
     Path("./parsed_reports").mkdir(parents=True, exist_ok=True)
 
@@ -128,8 +140,8 @@ def parse_RPT(folder):
 
         name = (rpt_file.split('.')[-2]).split('/')[-1]
 
-
         res_df.to_csv(f"parsed_reports/{name}.csv")
+
 
 if __name__ == "__main__":
     folder = argv[1]
