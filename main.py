@@ -48,7 +48,7 @@ if mode == "0":
         mu_df = pd.read_csv("aux_data/mu_92.csv", index_col=0)
         CALIBRATION_PATH = "aux_data/epsilons.csv"
         eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
-        
+
         file_names = []
         for file_path in glob.iglob(f"{raw_dir}/*.RPT"):
             file_names.append(file_path)
