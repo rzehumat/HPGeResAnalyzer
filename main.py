@@ -93,14 +93,16 @@ if mode == "0":
                                      kwargs["irradiation_start"])
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
             df_ig_eps_orig[
-                (df_ig_eps_orig["Area"] > 0) 
-                | (df_ig_eps_orig["Prod_mode_Fission product"] == True)
+                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
+                | (df_ig_eps_orig["Prod_mode_Fission product"])
+                | (df_ig_eps_orig["fiss_yield"] > 0)
                 ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                          index=False)
             df_ig_eps_orig[
-                (df_ig_eps_orig["Prod_mode_Fast neutron activation"] == True)
-                | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"] == True)
-                ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv", index=False)
+                (df_ig_eps_orig["Prod_mode_Fast neutron activation"])
+                | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"])
+                ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+                         index=False)
 
 
 # elif mode == "1":
