@@ -28,7 +28,8 @@ def permute_columns(df, first_cols):
 
 def append_Igamma(parsed_df, A, element, ig_all_df):
     if len(A) > 0:
-        ig_df = ig_all_df.loc[[f"{A}{element}", f"{int(A)+1}{element}", f"{int(A)+2}{element}"]]
+        ig_df = ig_all_df.loc[
+            [f"{A}{element}", f"{int(A)+1}{element}", f"{int(A)+2}{element}"]]
     else:
         ig_df = ig_all_df
 
@@ -53,7 +54,10 @@ def add_Ig(df, ig, ig_thr=1.0):
     added_df = df
     print(df.shape[0])
     for row in range(df.shape[0]):
-        condition = (df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"]) & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"]) & ig["Ig"] > 0.01*ig_thr
+        condition = (
+            (df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"])
+            & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"])
+            & ig["Ig"] > 0.01*ig_thr)
 
         suitable_lines = ig[condition]
         suitable_lines["Isotope"] = ig[condition].index

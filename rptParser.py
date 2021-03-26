@@ -23,9 +23,8 @@ def parse_header(lines):
                 if new_val == "":
                     continue
                 if re.match(
-                    r"\d{1,2}\.\d{1,2}\.\d{2,4}[ \d{1,2}\:\d{1,2}\:\d{1,2}]*", 
-                    new_val
-                           ):
+                    r"\d{1,2}\.\d{1,2}\.\d{2,4}[ \d{1,2}\:\d{1,2}\:\d{1,2}]*",
+                   new_val):
                     new_val = dparser.parse(new_val, fuzzy=True, dayfirst=True)
                     datetime_columns.append(new_key)
 
@@ -78,9 +77,9 @@ def parse_one_RPT(rpt_file):
 
     res = polish_dtypes(res)
     res = permute_columns(res, [
-                                "Pk", "Energy", "Area", "Live Time", 
-                                "Real Time", "Dead Time (rel)", 
-                                "Acquisition Started", "Bkgnd", 
+                                "Pk", "Energy", "Area", "Live Time",
+                                "Real Time", "Dead Time (rel)",
+                                "Acquisition Started", "Bkgnd",
                                 "FWHM", "Channel", "Cts/Sec", "%err"
                                 ])
     return res
@@ -91,18 +90,18 @@ def polish_dtypes(df):
     UNSIGNED_COLUMNS = ["Area", "Bkgnd", "Left", "PW", "Sample Identification"]
     INT_COLUMNS = ["IT", "Sample Type"]
     FLOAT_COLUMNS = [
-        "Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit", 
+        "Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit",
         "Peak Locate Threshold"
         ]
     TO_DROP = [
         "Sample Geometry", "Peak Locate Range (in channels)", "Sample Size",
         "Dead Time",
-        "Peak Analysis Report                    26.11.2020  5", 
-        "Peak Analysis From Channel", "Peak Search Sensitivity", 
-        "Max Iterations", 
-        "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW", 
-        "Fit", "Filename", 
-        "Sample Identification", "Sample Type", "Peak Locate Threshold", 
+        "Peak Analysis Report                    26.11.2020  5",
+        "Peak Analysis From Channel", "Peak Search Sensitivity",
+        "Max Iterations",
+        "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW",
+        "Fit", "Filename",
+        "Sample Identification", "Sample Type", "Peak Locate Threshold",
         "Peak Area Range (in channels)", "Efficiency ID"]
     cols = df.columns.tolist()
     if DATETIME_COLUMN in cols:
