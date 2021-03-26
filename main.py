@@ -99,7 +99,8 @@ if mode == "0":
                 ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                          index=False)
             df_ig_eps_orig[
-                (df_ig_eps_orig["Prod_mode_Fast neutron activation"])
+                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
+                | (df_ig_eps_orig["Prod_mode_Fast neutron activation"])
                 | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"])
                 ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
                          index=False)
