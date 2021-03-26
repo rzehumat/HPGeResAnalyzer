@@ -26,7 +26,7 @@ def parse_header(lines):
                     r"\d{1,2}\.\d{1,2}\.\d{2,4}[ \d{1,2}\:\d{1,2}\:\d{1,2}]*", 
                     new_val
                            ):
-                    new_val = dparser.parse(new_val, fuzzy=True)
+                    new_val = dparser.parse(new_val, fuzzy=True, dayfirst=True)
                     datetime_columns.append(new_key)
 
                 header[new_key] = new_val
