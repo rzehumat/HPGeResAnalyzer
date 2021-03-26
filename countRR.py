@@ -21,6 +21,12 @@ def get_mu_col(energy_col, mu_df):
 def countRR(df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
     AVOGADRO = 6.02214076e+23
     mu = get_mu_col(df["Energy"], mu_df)
+    print(mu.value_counts(dropna=False))
+    rho, d, mass, molar_mass, t_irr = float(rho), float(d), float(mass), float(molar_mass), float(t_irr)
+    print((mu*rho*d).max())
+    print(f"mu is {mu}")
+    print(f"rho is {rho}")
+    print(f"d is {d}")
     k = (mu * rho * d) / (1-np.exp(-mu * rho * d))
     lam = np.log(2) / df["Half-life [s]"]
     N = mass*AVOGADRO/molar_mass

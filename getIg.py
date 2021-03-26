@@ -31,18 +31,18 @@ def append_Igamma(parsed_df, A, element, ig_all_df):
         ig_df = ig_all_df.loc[[f"{A}{element}", f"{int(A)+1}{element}", f"{int(A)+2}{element}"]]
     else:
         ig_df = ig_all_df
-    
+
     joined_df = add_Ig(parsed_df, ig_df)
-    
+
     Path("./with_Ig").mkdir(parents=True, exist_ok=True)
-    joined_df = joined_df.sort_values(by=["Energy", "Pk", "Ig"], 
+    joined_df = joined_df.sort_values(by=["Energy", "Pk", "Ig"],
                                       ascending=[True, False, False])
     joined_df["Ig [%]"] = 100 * joined_df["Ig"].rename("Ig [%]")
     # joined_df = joined_df.drop(columns = ["Ig"])
-    joined_df = permute_columns(joined_df, ["Energy", "E_tab", "Ig [%]", 
-                                            "Area", "Isotope", "sigm_E", 
-                                            "sigm_Ig", "FWHM", "%err", 
-                                            "Live Time", "Real Time", 
+    joined_df = permute_columns(joined_df, ["Energy", "E_tab", "Ig [%]",
+                                            "Area", "Isotope", "sigm_E",
+                                            "sigm_Ig", "FWHM", "%err",
+                                            "Live Time", "Real Time",
                                             "Dead Time (rel)"])
 
     return joined_df

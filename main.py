@@ -80,7 +80,7 @@ if mode == "0":
             # kwargs["geometry"].append(geom)
         kwargs_df = pd.DataFrame.from_dict(kwargs)
         for j in range(len(file_names)):
-            file_name = file_names[j] 
+            file_name = file_names[j]
             kwargs = kwargs_df.loc[j].to_dict()
 
             raw_df = rptParser.parse_one_RPT(file_name)
@@ -93,9 +93,9 @@ if mode == "0":
 
             df_ig_eps_orig = addOrigin(df_ig_eps, info_df, yield_df)
             # df_ig_eps_orig = countRR(df_ig_eps_orig, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str)
-            df_ig_eps_orig = countRR(df_ig_eps_orig, mu_df, **kwargs)
+            df_ig_eps_orig = countRR(df_ig_eps_orig, mu_df, kwargs["foil_material_rho"], kwargs["foil_thickness"], kwargs["foil_mass"], kwargs["foil_material_molar_mass"], kwargs["irradiation_time"], kwargs["irradiation_start"])
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
-            df_ig_eps_orig[(df_ig_eps_orig["Area"] > 0) | (df_ig_eps_orig["Prod_mode_Fission product"]==True)].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv", index=False)
+            df_ig_eps_orig[(df_ig_eps_orig["Area"] > 0) | (df_ig_eps_orig["Prod_mode_Fission product"]== True)].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv", index=False)
             df_ig_eps_orig[(df_ig_eps_orig["Prod_mode_Fast neutron activation"] == True) | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"] == True)].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv", index=False)
 
 
