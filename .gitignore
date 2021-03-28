@@ -163,3 +163,4 @@ backup_with_Ig
 aux_data/fissionYieldU238_raw.csv
 aux_data/xcom/XCOM.tar.gz
 getMu.ipynb
+config.json
