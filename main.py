@@ -15,7 +15,14 @@ from countRR import countRR
 
 OUTPUT_DIR = "out"
 
-def get_kwargs(config, file_path)
+
+def get_kwargs(config, file_path):
+    my_dict = config
+    for key in list(config.keys):
+        if key not in file_path:
+            my_dict.pop(key, None)
+    df = pd.json_normalize(my_dict, sep='')
+    return df.to_dict(orient='records')[0]
 
 
 print("Available modes (default 0):")
