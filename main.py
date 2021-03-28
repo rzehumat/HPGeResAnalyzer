@@ -5,6 +5,7 @@ import glob
 import os
 
 import pandas as pd
+import uncertainties as uc
 
 from collections import defaultdict
 from pathlib import Path
@@ -66,7 +67,13 @@ if mode == "0":
                     kwargs[keys[i]].append(str(user_input))
 
             for i in range(3, len(keys)):
-                kwargs[keys[i]].append(input(f"{keys[i]} [{units[i]}] = "))
+                if i < len(keys) - 1:
+                    inp = input(f"{keys[i]} [{units[i]}]"
+                                " (expected format '̈́0.23(1)') = ")
+                    inp = uc.ufloat_fromstr(inp)
+                    kwargs[keys[i]].append(inp)
+                else:
+                    kwargs[keys[i]].append(input(f"{keys[i]} [{units[i]}] = "))
 
         kwargs_df = pd.DataFrame.from_dict(kwargs)
         for j in range(len(file_names)):
