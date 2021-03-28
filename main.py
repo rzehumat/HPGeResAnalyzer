@@ -77,6 +77,17 @@ if mode == "0":
 
         kwargs_df = pd.DataFrame.from_dict(kwargs)
         for j in range(len(file_names)):
+            
+            # Move to the dict above!!!
+            print("Allowed time units [ns, us, ms, s, m, h, d, w, y]")
+            print("Expected format '2.45 y'")
+            hl_upper_bound = input(
+                "Enter maximal Half-life to include (default 2 y) = ") or "2 y"
+            hl_upper_bound = pd.to_timedelta(hl_upper_bound).total_seconds()
+
+            ig_lower_bound = input("Enter minimal Ig to include [in %] (default 0.01 %) = ") or "0.01"
+            ig_lower_bound = float(ig_lower_bound)
+            
             file_name = file_names[j]
             kwargs = kwargs_df.loc[j].to_dict()
 
@@ -98,6 +109,13 @@ if mode == "0":
                                      kwargs["foil_material_molar_mass"],
                                      kwargs["irradiation_time"],
                                      kwargs["irradiation_start"])
+            # Half-life threshold should be
+            df_ig_eps_orig = df_ig_eps_orig[
+                (df_ig_eps_orig["Half-life [s]"] < hl_upper_bound)
+                | (df_ig_eps_orig["FWHM"] > 0)]
+            df_ig_eps_orig = df_ig_eps_orig[
+                (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
+                | (df_ig_eps_orig["FWHM"] > 0)]
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
             df_ig_eps_orig[
                 (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines

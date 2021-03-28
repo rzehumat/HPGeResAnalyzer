@@ -51,7 +51,7 @@ def countRR(orig_df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
                 * k * lam * df["Area"].to_numpy()
                 / (
                     N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
-                    * (1-np.exp(-lam * df["Real Time"][0]))
+                    * (1-unp.exp(-lam * df["Real Time"][0]))
                     * df["eps"] * df["Ig"]))
 
     print("Reaction rates counted successfully.")
