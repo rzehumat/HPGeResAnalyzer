@@ -80,9 +80,9 @@ def countRR(orig_df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
     df["RR"] = ((df['Real Time'][0] / df["Live Time"][0])
                 * k * lam * df["Area"].to_numpy()
                 / (
-                    N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)))
-#                    * (1-np.exp(-lam * df["Real Time"][0]))
-#                    * df["eps"] * df["Ig"]))
+                    N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
+                    * (1-np.exp(-lam * df["Real Time"][0]))
+                    * df["eps"] * df["Ig"]))
 #     df["RR"] = (
 #                 ((df['Real Time'][0] / df["Live Time"][0])
 #                  * k * lam * df["Area"])
