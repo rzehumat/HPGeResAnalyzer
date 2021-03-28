@@ -15,6 +15,9 @@ from countRR import countRR
 
 OUTPUT_DIR = "out"
 
+def get_kwargs(config, file_path)
+
+
 print("Available modes (default 0):")
 print("0 ... 'Process dir' with terminal inputs (not recommended due to no error-safety)")
 print("1 ... 'Process dir' with inputs from 'config.json' file (recommended)")
@@ -153,46 +156,85 @@ elif mode == "1":
         kwargs = get_kwargs(config, file_path)
 
         df = getIg.append_Igamma(raw_df, **kwargs)
-        df = 
+        df = getEpsilon.add_epsilon_file(df, ig_all_df, **kwargs)
+            
+        file_name = file_path.split("/")[-1].split(".")[-2]
+
+        df = addOrigin(df, info_df, yield_df)
+        df = countRR(df, mu_df, **kwargs)
+
+        # restrict hl and Ig interval
+        df = df[((df["Half-life [s]"] <= kwargs["hl_upper_bound"])
+                & (df["Half-life [s]"] >= kwargs["hl_lower_bound"])
+                & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
+                & (df["Ig [%]"] <= kwargs["ig_upper_bound"]))
+                | (df["FWHM"] > 0)]
+
+        df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+        df[
+            (df["FWHM"] > 0)  # to determine the original lines
+            | (df["Prod_mode_Fission product"])
+            | (df["fiss_yield"] > 0)
+            ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+                     index=False)
+        df[
+            (df["FWHM"] > 0)  # to determine the original lines
+            | (df["Prod_mode_Fast neutron activation"])
+            | (df["Prod_mode_Thermal neutron activation"])
+            ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+                     index=False)
+        
+        # df = df[
+        #     ((df["Half-life [s]"] < kwargs["hl_upper_bound"])
+        #     | (df["FWHM"] > 0))
+        #     & ((df["Ig [%]"] >= kwargs["ig_lower_bound"])
+        #     | ())
+        #     ]
+        # df = df[
+        #     (df["Ig [%]"] >= kwargs["ig_lower_bound"])
+        #     | (df["FWHM"] > 0)]
+        
 
 
-            df_ig = getIg.append_Igamma(raw_df, kwargs["A"],
-                                        kwargs["element"], ig_all_df)
-            df_ig_eps = getEpsilon.add_epsilon_file(
-                                                    df_ig,
-                                                    kwargs["detector_geometry"],
-                                                    eps_df)
 
-            file_name = file_name.split("/")[-1].split(".")[-2]
 
-            df_ig_eps_orig = addOrigin(df_ig_eps, info_df, yield_df)
-            df_ig_eps_orig = countRR(df_ig_eps_orig, mu_df,
-                                     kwargs["foil_material_rho"],
-                                     kwargs["foil_thickness"],
-                                     kwargs["foil_mass"],
-                                     kwargs["foil_material_molar_mass"],
-                                     kwargs["irradiation_time"],
-                                     kwargs["irradiation_start"])
-            # Half-life threshold should be
-            df_ig_eps_orig = df_ig_eps_orig[
-                (df_ig_eps_orig["Half-life [s]"] < hl_upper_bound)
-                | (df_ig_eps_orig["FWHM"] > 0)]
-            df_ig_eps_orig = df_ig_eps_orig[
-                (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
-                | (df_ig_eps_orig["FWHM"] > 0)]
-            df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
-            df_ig_eps_orig[
-                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
-                | (df_ig_eps_orig["Prod_mode_Fission product"])
-                | (df_ig_eps_orig["fiss_yield"] > 0)
-                ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
-                         index=False)
-            df_ig_eps_orig[
-                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
-                | (df_ig_eps_orig["Prod_mode_Fast neutron activation"])
-                | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"])
-                ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
-                         index=False)
+            # df_ig = getIg.append_Igamma(raw_df, kwargs["A"],
+            #                             kwargs["element"], ig_all_df)
+            # df_ig_eps = getEpsilon.add_epsilon_file(
+            #                                         df_ig,
+            #                                         kwargs["detector_geometry"],
+            #                                         eps_df)
+
+            # file_name = file_name.split("/")[-1].split(".")[-2]
+
+            # df_ig_eps_orig = addOrigin(df_ig_eps, info_df, yield_df)
+            # df_ig_eps_orig = countRR(df_ig_eps_orig, mu_df,
+            #                          kwargs["foil_material_rho"],
+            #                          kwargs["foil_thickness"],
+            #                          kwargs["foil_mass"],
+            #                          kwargs["foil_material_molar_mass"],
+            #                          kwargs["irradiation_time"],
+            #                          kwargs["irradiation_start"])
+            # # Half-life threshold should be
+            # df_ig_eps_orig = df_ig_eps_orig[
+            #     (df_ig_eps_orig["Half-life [s]"] < hl_upper_bound)
+            #     | (df_ig_eps_orig["FWHM"] > 0)]
+            # df_ig_eps_orig = df_ig_eps_orig[
+            #     (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
+            #     | (df_ig_eps_orig["FWHM"] > 0)]
+            # df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+            # df_ig_eps_orig[
+            #     (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
+            #     | (df_ig_eps_orig["Prod_mode_Fission product"])
+            #     | (df_ig_eps_orig["fiss_yield"] > 0)
+            #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+            #              index=False)
+            # df_ig_eps_orig[
+            #     (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
+            #     | (df_ig_eps_orig["Prod_mode_Fast neutron activation"])
+            #     | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"])
+            #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+            #              index=False)
 
 
 # elif mode == "1":
