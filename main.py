@@ -3,6 +3,7 @@ import getIg
 import getEpsilon
 import glob
 import os
+import json
 
 import pandas as pd
 import uncertainties as uc
@@ -15,14 +16,22 @@ from countRR import countRR
 OUTPUT_DIR = "out"
 
 print("Available modes (default 0):")
-print("0 ... 'Process dir'")
+print("0 ... 'Process dir' with terminal inputs (not recommended due to no error-safety)")
+print("1 ... 'Process dir' with inputs from 'config.json' file (recommended)")
 # print("1 ... 'Nuclide search': We know the isotope, peak detection efficiency and geometry")
 # print("Parses RPT files, downloads and adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
 # print("2 ... 'Radiation search': We do NOT know the isotopes, peak detection efficiency and geometry")
 # print("Parses RPT files, searches the radiation, adds possible isotopes to peaks, adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
+        
+ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
+info_df = pd.read_parquet("aux_data/info_all.pq")
+yield_df = pd.read_csv("aux_data/fissionYield_238U.csv", index_col=0)
+mu_df = pd.read_csv("aux_data/mu_92.csv", index_col=0)
+CALIBRATION_PATH = "aux_data/epsilons.csv"
+eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
 
 print("Select mode:")
-mode = input("[0]/[1]/[2] ") or "0"
+mode = input("[0]/[1]/[2] (default 1)") or "1"
 
 if mode == "0":
     raw_dir = input("Enter relative path to directory"
@@ -43,15 +52,17 @@ if mode == "0":
 
         kwargs = defaultdict(list)
 
-        ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
-        info_df = pd.read_parquet("aux_data/info_all.pq")
-        yield_df = pd.read_csv("aux_data/fissionYield_238U.csv", index_col=0)
-        mu_df = pd.read_csv("aux_data/mu_92.csv", index_col=0)
-        CALIBRATION_PATH = "aux_data/epsilons.csv"
-        eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
+        # ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
+        # info_df = pd.read_parquet("aux_data/info_all.pq")
+        # yield_df = pd.read_csv("aux_data/fissionYield_238U.csv", index_col=0)
+        # mu_df = pd.read_csv("aux_data/mu_92.csv", index_col=0)
+        # CALIBRATION_PATH = "aux_data/epsilons.csv"
+        # eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
 
         file_names = []
         for file_path in glob.iglob(f"{raw_dir}/*.RPT"):
+            # UGLY, rewrite using the "unpacking operator *"
+            # UGLY, reuse the loop-over-RPT-files
             file_names.append(file_path)
             try:
                 file_vars = getEpsilon.file_name_parse(file_path)
@@ -85,13 +96,66 @@ if mode == "0":
                 "Enter maximal Half-life to include (default 2 y) = ") or "2 y"
             hl_upper_bound = pd.to_timedelta(hl_upper_bound).total_seconds()
 
-            ig_lower_bound = input("Enter minimal Ig to include [in %] (default 0.01 %) = ") or "0.01"
+            ig_lower_bound = (input(
+                "Enter minimal Ig to include [in %] (default 0.01 %) = ")
+                 or "0.01")
             ig_lower_bound = float(ig_lower_bound)
             
             file_name = file_names[j]
             kwargs = kwargs_df.loc[j].to_dict()
 
             raw_df = rptParser.parse_one_RPT(file_name)
+            df_ig = getIg.append_Igamma(raw_df, kwargs["A"],
+                                        kwargs["element"], ig_all_df)
+            df_ig_eps = getEpsilon.add_epsilon_file(
+                                                    df_ig,
+                                                    kwargs["detector_geometry"],
+                                                    eps_df)
+
+            file_name = file_name.split("/")[-1].split(".")[-2]
+
+            df_ig_eps_orig = addOrigin(df_ig_eps, info_df, yield_df)
+            df_ig_eps_orig = countRR(df_ig_eps_orig, mu_df,
+                                     kwargs["foil_material_rho"],
+                                     kwargs["foil_thickness"],
+                                     kwargs["foil_mass"],
+                                     kwargs["foil_material_molar_mass"],
+                                     kwargs["irradiation_time"],
+                                     kwargs["irradiation_start"])
+            # Half-life threshold should be
+            df_ig_eps_orig = df_ig_eps_orig[
+                (df_ig_eps_orig["Half-life [s]"] < hl_upper_bound)
+                | (df_ig_eps_orig["FWHM"] > 0)]
+            df_ig_eps_orig = df_ig_eps_orig[
+                (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
+                | (df_ig_eps_orig["FWHM"] > 0)]
+            df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+            df_ig_eps_orig[
+                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
+                | (df_ig_eps_orig["Prod_mode_Fission product"])
+                | (df_ig_eps_orig["fiss_yield"] > 0)
+                ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+                         index=False)
+            df_ig_eps_orig[
+                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
+                | (df_ig_eps_orig["Prod_mode_Fast neutron activation"])
+                | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"])
+                ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+                         index=False)
+
+elif mode == "1":
+    json_config = open("config.json", "r")
+    config = json.load(json_config)
+    # UGLY, reuse the loop below
+    for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
+        raw_df = rptParser.parse_one_RPT(file_path)
+        
+        kwargs = get_kwargs(config, file_path)
+
+        df = getIg.append_Igamma(raw_df, **kwargs)
+        df = 
+
+
             df_ig = getIg.append_Igamma(raw_df, kwargs["A"],
                                         kwargs["element"], ig_all_df)
             df_ig_eps = getEpsilon.add_epsilon_file(
