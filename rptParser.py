@@ -117,11 +117,7 @@ def polish_dtypes(df):
         df[col] = pd.to_numeric(df[col], downcast="integer")
     for col in FLOAT_COLUMNS:
         df[col] = pd.to_numeric(df[col], downcast="float")
-    # for col in ["Real Time", "Live Time", "Identification Energy Tolerance"]:
-    #     if col in cols:
-    #         unit = str(df[col][0]).split()[-1]
-    #         df[col] = (df[col].str.split(" ").str[0]).astype(float)
-    #         df[col] = df[col].rename(f"{col} [{unit}]")
+    
     col_name = "Identification Energy Tolerance"
     if col_name in cols:
         unit = str(df[col_name][0]).split()[-1]
@@ -131,11 +127,6 @@ def polish_dtypes(df):
         if col in cols:
             unit = str(df[col][0]).split()[-1]
             df[col] = df[col].rename(f"{col} [{unit}]")
-            # df[col] = (df[col].str.split(" ").str[0]).astype(float)
-            # print(df[col].str.split(" ").str[0])
-            # print(type(df[col].str.split(" ").str[0]))
-            # ufloat_str = df[col].str.split(" ").str[0] + "0(5)"
-            # df[col] = ufloat_fromstr(ufloat_str)
             df[col] = df[col].str.split(" ").str[0].apply(add_uncert)
 
     if "Dead Time" in cols:

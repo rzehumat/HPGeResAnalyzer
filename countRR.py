@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import time
 
-# from uncertainties import ufloat
 import uncertainties.unumpy as unp
 from sys import argv
 
