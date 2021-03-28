@@ -8,6 +8,7 @@ import dateutil.parser as dparser
 from sys import argv
 from pathlib import Path
 from getIg import permute_columns
+from uncertainties import ufloat_fromstr
 
 
 def parse_header(lines):
@@ -85,6 +86,10 @@ def parse_one_RPT(rpt_file):
     return res
 
 
+def add_uncert(t):
+    return ufloat_fromstr(str(t) + "0(5)")
+
+
 def polish_dtypes(df):
     DATETIME_COLUMN = "Report Generated On"
     UNSIGNED_COLUMNS = ["Area", "Bkgnd", "Left", "PW", "Sample Identification"]
@@ -112,11 +117,17 @@ def polish_dtypes(df):
         df[col] = pd.to_numeric(df[col], downcast="integer")
     for col in FLOAT_COLUMNS:
         df[col] = pd.to_numeric(df[col], downcast="float")
-    for col in ["Real Time", "Live Time", "Identification Energy Tolerance"]:
+    
+    col_name = "Identification Energy Tolerance"
+    if col_name in cols:
+        unit = str(df[col_name][0]).split()[-1]
+        df[col_name] = (df[col_name].str.split(" ").str[0]).astype(float)
+        df[col_name] = df[col_name].rename(f"{col_name} [{unit}]")
+    for col in ["Real Time", "Live Time"]:
         if col in cols:
             unit = str(df[col][0]).split()[-1]
-            df[col] = (df[col].str.split(" ").str[0]).astype(float)
             df[col] = df[col].rename(f"{col} [{unit}]")
+            df[col] = df[col].str.split(" ").str[0].apply(add_uncert)
 
     if "Dead Time" in cols:
         df["Dead Time (rel)"] = 0.01 * (

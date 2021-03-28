@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
+import time
 
+import uncertainties.unumpy as unp
 from sys import argv
 
 
@@ -18,34 +20,53 @@ def get_mu_col(energy_col, mu_df):
     return energy_col.apply(lambda x: get_mu_one(x, mu_df))
 
 
-def countRR(df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
+def countRR(orig_df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
+    """
+    Assumption: One does not measure an isotope after 10 half-lives.
+    Therefore we calculate delta_t and compare it with half-lives.
+    If delta_t < 10HL => select df[Half-life] > 0.1 delta_t
+    """
+    irr_start = pd.to_datetime(irr_start_str, dayfirst=True)
+    irr_start = int(time.mktime(irr_start.timetuple()))
+    irr_end = irr_start + t_irr
+
+    acq_started = pd.to_datetime(orig_df["Acquisition Started"][0])
+    delta_t = int(time.mktime(acq_started.timetuple())) - irr_end
+
+    df = orig_df[
+        (orig_df["Half-life [s]"] > 0.1 * delta_t)
+        | (orig_df["FWHM"] > 0)]
+
     AVOGADRO = float(6.02214076e+23)
     mu = get_mu_col(df["Energy"], mu_df)
-    rho, d = float(rho), float(d)
+
     mu = mu.astype(np.float64)
 
-    k = (mu * rho * d) / (1 - np.exp(- mu * rho * d))
+    k = (mu * rho * d) / (1 - unp.exp(- mu * rho * d))
     lam = np.log(2) / df["Half-life [s]"]
-    mass = float(mass)
-    molar_mass = float(molar_mass)
     N = mass*AVOGADRO/molar_mass
-    t_irr = float(t_irr)
-    irr_start = pd.to_datetime(irr_start_str, dayfirst=True)
-    irr_end = irr_start + pd.to_timedelta(t_irr, "s")
 
-    delta_t = pd.to_datetime(df["Acquisition Started"][0]) - irr_end
-    delta_t = delta_t.total_seconds()
-    delta_t = float(delta_t)
-
-    df["RR"] = (
-                ((df['Real Time'][0] / df["Live Time"][0])
-                 * k * lam * df["Area"])
+    df["RR"] = ((df['Real Time'][0] / df["Live Time"][0])
+                * k * lam * df["Area"].to_numpy()
                 / (
-                   N * (1-np.exp(-lam*t_irr)) * np.exp(-lam * delta_t)
-                   * (1-np.exp(-lam * df["Real Time"][0]))
-                   * df["eps"] * df["Ig"]))
+                    N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
+                    * (1-unp.exp(-lam * df["Real Time"][0]))
+                    * df["eps"] * df["Ig"]))
+
     print("Reaction rates counted successfully.")
     return df
+
+    # def calc_uexp(lam_df, delta_t, N):
+    #     length = lam_df.shape[0]
+    #     lam_arr = lam_df.to_numpy()
+    #     res = np.ones(length)
+    #     for i in range(length):
+    #         try:
+    #             res[i] = unp.exp(lam_arr[i] * delta_t) / N
+    #         except OverflowError:
+    #             print(f"Overflow at i = {i} which is lam * delta = {lam_arr[i]*delta_t}")
+    #             res[i] =
+    #     return res
 
 
 if __name__ == "__main__":
