@@ -3,6 +3,7 @@ import numpy as np
 import time
 
 import uncertainties.unumpy as unp
+from uncertainties import ufloat_fromstr
 from sys import argv
 
 
@@ -20,7 +21,14 @@ def get_mu_col(energy_col, mu_df):
     return energy_col.apply(lambda x: get_mu_one(x, mu_df))
 
 
-def countRR(orig_df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
+def parse_time_unc(time_str):
+    num_str, unit = time_str.split(' ')
+    num = ufloat_fromstr(num_str)
+    return num * pd.to_timedelta(f"1 {unit}").total_seconds()
+
+
+def countRR(orig_df, mu_df, rho, d, mass, molar_mass,
+            t_irr_str, irr_start_str):
     """
     Assumption: One does not measure an isotope after 10 half-lives.
     Therefore we calculate delta_t and compare it with half-lives.
@@ -28,6 +36,7 @@ def countRR(orig_df, mu_df, rho, d, mass, molar_mass, t_irr, irr_start_str):
     """
     irr_start = pd.to_datetime(irr_start_str, dayfirst=True)
     irr_start = int(time.mktime(irr_start.timetuple()))
+    t_irr = parse_time_unc(t_irr_str)
     irr_end = irr_start + t_irr
 
     acq_started = pd.to_datetime(orig_df["Acquisition Started"][0])
