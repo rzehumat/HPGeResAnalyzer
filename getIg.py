@@ -26,10 +26,13 @@ def permute_columns(df, first_cols):
     return df
 
 
-def append_Igamma(parsed_df, A, element, ig_all_df):
-    if len(A) > 0:
+# def append_Igamma(parsed_df, A, element, ig_all_df):
+def append_Igamma(parsed_df, ig_all_df, **kwargs):
+    print(kwargs)
+    # if len(A) > 0:
+    if "A" in kwargs.keys():
         ig_df = ig_all_df.loc[
-            [f"{A}{element}", f"{int(A)+1}{element}", f"{int(A)+2}{element}"]]
+            [f"{kwargs['A']}{kwargs['element']}", f"{int(kwargs['A'])+1}{kwargs['element']}", f"{int(kwargs['A'])+2}{kwargs['element']}"]]
     else:
         ig_df = ig_all_df
 

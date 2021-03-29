@@ -27,16 +27,17 @@ def parse_time_unc(time_str):
     return num * pd.to_timedelta(f"1 {unit}").total_seconds()
 
 
-def countRR(orig_df, mu_df, rho, d, mass, molar_mass,
-            t_irr_str, irr_start_str):
+# def countRR(orig_df, mu_df, rho, d, mass, molar_mass,
+#             t_irr_str, irr_start_str):
+def countRR(orig_df, mu_df, **kwargs):
     """
     Assumption: One does not measure an isotope after 10 half-lives.
     Therefore we calculate delta_t and compare it with half-lives.
     If delta_t < 10HL => select df[Half-life] > 0.1 delta_t
     """
-    irr_start = pd.to_datetime(irr_start_str, dayfirst=True)
+    irr_start = pd.to_datetime(kwargs["irradiation_start"], dayfirst=True)
     irr_start = int(time.mktime(irr_start.timetuple()))
-    t_irr = parse_time_unc(t_irr_str)
+    t_irr = parse_time_unc(kwargs["irradiation_time"])
     irr_end = irr_start + t_irr
 
     acq_started = pd.to_datetime(orig_df["Acquisition Started"][0])
@@ -50,9 +51,14 @@ def countRR(orig_df, mu_df, rho, d, mass, molar_mass,
     mu = get_mu_col(df["Energy"], mu_df)
 
     mu = mu.astype(np.float64)
-
+    rho = ufloat_fromstr(kwargs['foil_material_rho'])
+    d = ufloat_fromstr(kwargs['foil_thickness'])
     k = (mu * rho * d) / (1 - unp.exp(- mu * rho * d))
     lam = np.log(2) / df["Half-life [s]"]
+
+    mass = ufloat_fromstr(kwargs['foil_mass'])
+    molar_mass = ufloat_fromstr(kwargs['foil_material_molar_mass'])
+
     N = mass*AVOGADRO/molar_mass
 
     df["RR"] = ((df['Real Time'][0] / df["Live Time"][0])

@@ -18,11 +18,15 @@ OUTPUT_DIR = "out"
 
 def get_kwargs(config, file_path):
     my_dict = config
-    for key in list(config.keys):
+    for key in list(config.keys()):
         if key not in file_path:
             my_dict.pop(key, None)
-    df = pd.json_normalize(my_dict, sep='')
-    return df.to_dict(orient='records')[0]
+    df = pd.json_normalize(my_dict, sep='.')
+    mydict = df.to_dict(orient='records')[0]
+    # Ugly
+    for key in tuple(mydict.keys()):
+        mydict[key.split('.')[-1]] = mydict.pop(key)
+    return mydict
 
 
 print("Available modes (default 0):")
@@ -162,8 +166,8 @@ elif mode == "1":
         
         kwargs = get_kwargs(config, file_path)
 
-        df = getIg.append_Igamma(raw_df, **kwargs)
-        df = getEpsilon.add_epsilon_file(df, ig_all_df, **kwargs)
+        df = getIg.append_Igamma(raw_df, ig_all_df, **kwargs)
+        df = getEpsilon.add_epsilon_file(df, eps_df, **kwargs)
             
         file_name = file_path.split("/")[-1].split(".")[-2]
 
@@ -171,8 +175,10 @@ elif mode == "1":
         df = countRR(df, mu_df, **kwargs)
 
         # restrict hl and Ig interval
-        df = df[((df["Half-life [s]"] <= kwargs["hl_upper_bound"])
-                & (df["Half-life [s]"] >= kwargs["hl_lower_bound"])
+        hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
+        hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
+        df = df[((df["Half-life [s]"] <= hl_upper_bound)
+                & (df["Half-life [s]"] >= hl_lower_bound)
                 & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
                 & (df["Ig [%]"] <= kwargs["ig_upper_bound"]))
                 | (df["FWHM"] > 0)]
