@@ -47,7 +47,8 @@ def countRR(orig_df, mu_df, **kwargs):
     # delta_t = acq_started.total_seconds() - irr_start.total_seconds()
 
     df = orig_df[
-        (orig_df["Half-life [s]"] > 0.1 * delta_t)]
+        (orig_df["Half-life [s]"] > 0.1 * delta_t)
+        & (orig_df["Half-life [s]"] < pd.to_timedelta("2 y").total_seconds())]
     lines_df = orig_df[orig_df["FWHM"] > 0]
 
     AVOGADRO = float(6.02214076e+23)
@@ -67,17 +68,50 @@ def countRR(orig_df, mu_df, **kwargs):
     print("values")
     print(f"delta_t is {delta_t}")
     # input("Press Enter to continue...")
-    df["RR"] = ((df['Real Time'][0] / df["Live Time"][0])
+    real_time = lines_df['Real Time'][0]
+    live_time = lines_df['Live Time'][0]
+    # real_time = 3800
+    # live_time = 3800
+    print("values are")
+    #input("press")
+    print(real_time)
+    print(live_time)
+    print(k)
+    print(lam)
+    print(df["Area"].head())
+    print(N)
+    print(t_irr)
+    print(delta_t)
+    print(df["eps"].head())
+    print(df["Ig"])
+    #input("out")
+    print("############################################")
+    print("To zkurvené t_irr je")
+    print(t_irr)
+    print("a ta jebnutá lambda")
+    print(lam)
+    print("max lam je")
+    print(lam.max()) 
+    print("min lam je")
+    print(lam.min()) 
+    print("hodnoty lam")
+    print(lam.value_counts())
+    df["RR"] = ((real_time / live_time)
                 * k * lam * df["Area"].to_numpy()
                 / (
                     N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
-                    * (1-unp.exp(-lam * df["Real Time"][0]))
+                    * (1-unp.exp(-lam * real_time))
                     * df["eps"] * df["Ig"]))
     df["RR_fiss_prod"] = (2 / df["fiss_yield"]) * df["RR"]
     print("Reaction rates counted successfully.")
     df = df.append(lines_df)
     df = df.sort_values(by=["Energy", "FWHM", "Ig [%]"], ascending=[True, True, False])
     return df
+    # except ZeroDivisionError:
+    #     print("ERROR ZERO division")
+    #     pp = "out/error.csv"
+    #     print(f"saving to {pp}")
+    #     df.to_csv(pp)
 
     # def calc_uexp(lam_df, delta_t, N):
     #     length = lam_df.shape[0]

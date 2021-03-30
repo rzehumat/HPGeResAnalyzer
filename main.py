@@ -188,7 +188,7 @@ elif mode == "1":
         df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
         df[
             (df["FWHM"] > 0)  # to determine the original lines
-            | (df["Prod_mode_Fission product"])
+            # | (df["Prod_mode_Fission product"])
             | (df["fiss_yield"] > 0)
             ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                      index=False)
