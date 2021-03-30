@@ -43,6 +43,12 @@ def add_epsilon_file(df, eps_df, **kwargs):
               "WTF have you measured.")
         print("I'll at least add detection efficiencies...")
         df["E_tab"] = df["Energy"]
+        print("detector geom is")
+        print(kwargs)
+        print("FOO")
+        print(kwargs["detector_geometry"])
+        print("BAR")
+        print(kwargs['detector_geometry'])
         df["eps"] = df["E_tab"].apply(
             lambda x: add_epsilon_val(x, kwargs['detector_geometry'], eps_df))
 

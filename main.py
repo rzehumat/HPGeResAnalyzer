@@ -163,10 +163,12 @@ elif mode == "1":
     # UGLY, reuse the loop below
     for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
         raw_df = rptParser.parse_one_RPT(file_path)
-        
-        kwargs = get_kwargs(config, file_path)
+        jsn_config = open("config.json", "r")   
+        cfg = json.load(jsn_config)
+        kwargs = get_kwargs(cfg, file_path)
 
         df = getIg.append_Igamma(raw_df, ig_all_df, **kwargs)
+        print(f"file_path is {file_path}")
         df = getEpsilon.add_epsilon_file(df, eps_df, **kwargs)
             
         file_name = file_path.split("/")[-1].split(".")[-2]

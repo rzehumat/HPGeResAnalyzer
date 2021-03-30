@@ -36,16 +36,19 @@ def countRR(orig_df, mu_df, **kwargs):
     If delta_t < 10HL => select df[Half-life] > 0.1 delta_t
     """
     irr_start = pd.to_datetime(kwargs["irradiation_start"], dayfirst=True)
-    irr_start = int(time.mktime(irr_start.timetuple()))
-    t_irr = parse_time_unc(kwargs["irradiation_time"])
-    irr_end = irr_start + t_irr
+    # irr_start = int(time.mktime(irr_start.timetuple()))
 
-    acq_started = pd.to_datetime(orig_df["Acquisition Started"][0])
-    delta_t = int(time.mktime(acq_started.timetuple())) - irr_end
+    t_irr = parse_time_unc(kwargs["irradiation_time"])
+    # irr_end = irr_start + t_irr
+
+    acq_started = pd.to_datetime(orig_df["Acquisition Started"][0], dayfirst=True)
+    delta_t = (acq_started - irr_start).total_seconds()
+    # delta_t = int(time.mktime(acq_started.timetuple())) - irr_end
+    # delta_t = acq_started.total_seconds() - irr_start.total_seconds()
 
     df = orig_df[
-        (orig_df["Half-life [s]"] > 0.1 * delta_t)
-        | (orig_df["FWHM"] > 0)]
+        (orig_df["Half-life [s]"] > 0.1 * delta_t)]
+    lines_df = orig_df[orig_df["FWHM"] > 0]
 
     AVOGADRO = float(6.02214076e+23)
     mu = get_mu_col(df["Energy"], mu_df)
@@ -61,6 +64,9 @@ def countRR(orig_df, mu_df, **kwargs):
 
     N = mass*AVOGADRO/molar_mass
 
+    print("values")
+    print(f"delta_t is {delta_t}")
+    # input("Press Enter to continue...")
     df["RR"] = ((df['Real Time'][0] / df["Live Time"][0])
                 * k * lam * df["Area"].to_numpy()
                 / (
@@ -69,6 +75,8 @@ def countRR(orig_df, mu_df, **kwargs):
                     * df["eps"] * df["Ig"]))
     df["RR_fiss_prod"] = (2 / df["fiss_yield"]) * df["RR"]
     print("Reaction rates counted successfully.")
+    df = df.append(lines_df)
+    df = df.sort_values(by=["Energy", "FWHM", "Ig [%]"], ascending=[True, True, False])
     return df
 
     # def calc_uexp(lam_df, delta_t, N):
