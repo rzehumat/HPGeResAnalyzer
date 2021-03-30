@@ -12,6 +12,7 @@ from collections import defaultdict
 from pathlib import Path
 from addOrigin import addOrigin
 from countRR import countRR
+from getIg import permute_columns
 
 OUTPUT_DIR = "out"
 
@@ -143,6 +144,11 @@ if mode == "0":
             df_ig_eps_orig = df_ig_eps_orig[
                 (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
                 | (df_ig_eps_orig["FWHM"] > 0)]
+            prod_cols = [x for x in df_ig_eps_orig.columns.to_list() if "Prod_mode" in x]
+            fff = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope", "RR", "RR_fiss_prod"]
+
+            df_ig_eps_orig = permute_columns(df_ig_eps_orig, fff+prod_cols)
+
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
             df_ig_eps_orig[
                 (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
