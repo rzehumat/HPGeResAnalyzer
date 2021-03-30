@@ -146,8 +146,12 @@ if mode == "0":
                 | (df_ig_eps_orig["FWHM"] > 0)]
             prod_cols = [x for x in df_ig_eps_orig.columns.to_list() if "Prod_mode" in x]
             fff = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope", "RR", "RR_fiss_prod"]
-
-            df_ig_eps_orig = permute_columns(df_ig_eps_orig, fff+prod_cols)
+            cols = fff + prod_cols
+            print(prod_cols)
+            print(fff)
+            print(cols)
+            input("hahah")
+            df_ig_eps_orig = permute_columns(df_ig_eps_orig, cols)
 
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
             df_ig_eps_orig[
@@ -191,6 +195,14 @@ elif mode == "1":
                 & (df["Ig [%]"] <= kwargs["ig_upper_bound"]))
                 | (df["FWHM"] > 0)]
 
+        prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
+        fff = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope", "RR", "RR_fiss_prod"]
+        cols = fff + prod_cols
+        print(prod_cols)
+        print(fff)
+        print(cols)
+        # input("hahah")
+        df = permute_columns(df, cols)
         df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
         df[
             (df["FWHM"] > 0)  # to determine the original lines
