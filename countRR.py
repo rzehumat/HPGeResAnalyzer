@@ -85,9 +85,8 @@ def countRR(orig_df, mu_df, **kwargs):
 
     real_time = lines_df['Real Time'][0]
     live_time = lines_df['Live Time'][0]
-    print(df["Area"])
-    print(type(df["Area"]))
-    print(df["sigm_Area"])
+    print(t_irr)
+    print(type(t_irr))
     input("...")
     # ################x
     # uncert status
@@ -96,6 +95,8 @@ def countRR(orig_df, mu_df, **kwargs):
     # k ... DONE
     # lam ... DONE
     # Area ... DONE
+    # N ... DONE
+    # t_irr ... DONE
 
     nom = ((real_time / live_time) * k * lam * df["Area"])
     denom = (N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
