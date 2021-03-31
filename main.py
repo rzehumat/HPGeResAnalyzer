@@ -188,31 +188,38 @@ elif mode == "1":
         df = addOrigin(df, info_df, yield_df)
         df = countRR(df, mu_df, **kwargs)
 
+        df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
+
         # restrict hl and Ig interval
         # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
         hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
-        df = df[
-                (df["Half-life [s]"] >= hl_lower_bound)
-                & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
-                & (df["Ig [%]"] <= kwargs["ig_upper_bound"])
-                | (df["FWHM"] > 0)]
-
-        prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
-        fff = ["Energy", "E_tab", "Ig [%]", "Area",
-               "Isotope", "RR", "RR_fiss_prod"]
-        cols = fff + prod_cols
-        df = permute_columns(df, cols)
+        
         df = polish_res(df)
-        df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
-        df[
-            (df["FWHM"] > 0)  # to determine the original lines
-            # | (df["Prod_mode_Fission product"])
-            | (df["fiss_yield"] > 0)
-            ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
-                     index=False)
-        df[
-            (df["FWHM"] > 0)  # to determine the original lines
-            | (df["Prod_mode_Fast neutron activation"])
-            | (df["Prod_mode_Thermal neutron activation"])
-            ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
-                     index=False)
+        
+        df.to_csv(f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
+        
+        
+        # df = df[
+        #         (df["Half-life [s]"] >= hl_lower_bound)
+        #         & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
+        #         & (df["Ig [%]"] <= kwargs["ig_upper_bound"])
+        #         | (df["FWHM"] > 0)]
+
+        # prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
+        # fff = ["Energy", "E_tab", "Ig [%]", "Area",
+        #        "Isotope", "RR", "RR_fiss_prod"]
+        # cols = fff + prod_cols
+        # df = permute_columns(df, cols)
+        # df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+        # df[
+        #     (df["FWHM"] > 0)  # to determine the original lines
+        #     # | (df["Prod_mode_Fission product"])
+        #     | (df["fiss_yield"] > 0)
+        #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+        #              index=False)
+        # df[
+        #     (df["FWHM"] > 0)  # to determine the original lines
+        #     | (df["Prod_mode_Fast neutron activation"])
+        #     | (df["Prod_mode_Thermal neutron activation"])
+        #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+        #              index=False)
