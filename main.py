@@ -30,6 +30,21 @@ def get_kwargs(config, file_path):
     return mydict
 
 
+def add_unc(x):
+    return '{:.1uS}'.format(uc.ufloat(x[0], x[1]))
+
+
+def add_unc_en(x):
+    return '{:.1uS}'.format(uc.ufloat(x[0], 0.5*x[1]))
+
+
+def polish_res(df):
+    df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
+    df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
+    # df = df.drop(columns=["FWHM", "sigm_E"])
+    return df
+
+
 print("Available modes (default 0):")
 print("0 ... 'Process dir' with terminal inputs"
       "(not recommended due to no error-safety)")
@@ -187,6 +202,7 @@ elif mode == "1":
                "Isotope", "RR", "RR_fiss_prod"]
         cols = fff + prod_cols
         df = permute_columns(df, cols)
+        df = polish_res(df)
         df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
         df[
             (df["FWHM"] > 0)  # to determine the original lines

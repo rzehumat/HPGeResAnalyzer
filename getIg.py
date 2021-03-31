@@ -65,6 +65,7 @@ def add_Ig(df, ig, ig_thr=1.0):
         suitable_lines["Isotope"] = ig[condition].index
         suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"]
         suitable_lines.loc[:, ("Area")] = df.loc[row, "Area"]
+        suitable_lines.loc[:, ("FWHM")] = df.loc[row, "FWHM"]
 
         added_df = added_df.append(suitable_lines)
 
