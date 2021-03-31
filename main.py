@@ -40,7 +40,9 @@ def add_unc_en(x):
 
 
 def unc_to_bracket(num):
-    if isnan(num.s):
+    if isinstance(num, float):
+        return num
+    elif isnan(num.s):
         return round(num.n, 2)
     else:
         return '{:.1uS}'.format(num)
@@ -53,14 +55,25 @@ def polish_res(df):
         add_unc, axis=1)
     df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
     df["Area"] = df["Area"].apply(unc_to_bracket)
+    df["Real Time"] = df["Real Time"].apply(unc_to_bracket)
+    df["Live Time"] = df["Live Time"].apply(unc_to_bracket)
     return df
 
 
 def drop_but_prodmode(df):
     sigm_cols = [x for x in df.columns.to_list() if "sigm_" in x]
 
-    drop_cols = sigm_cols + ["FWHM", "%err", "Ig"]
-    return df.drop(columns=drop_cols) 
+    drop_cols = (sigm_cols
+                 + ["FWHM", "%err", "Ig", "Dead Time",
+                    "Peak Locate Threshold", "Sample Geometry",
+                    "Use Fixed FWHM", "Pk", "IT", "Bkgnd", "Channel",
+                    "Left", "PW", "Cts/Sec", "Fit", "Filename",
+                    "Sample Identification", "Sample Type",
+                    "Peak Locate Range (in channels)",
+                    "Peak Area Range (in channels)",
+                    "Identification Energy Tolerance", "Sample Size",
+                    "Efficiency ID"])
+    return df.drop(columns=drop_cols)
 
 
 print("Available modes (default 0):")
@@ -219,7 +232,6 @@ elif mode == "1":
         hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
         
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
-        
         
         # df = df[
         #         (df["Half-life [s]"] >= hl_lower_bound)

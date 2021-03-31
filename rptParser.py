@@ -77,12 +77,12 @@ def parse_one_RPT(rpt_file):
     res = res.fillna(method='ffill')
 
     res = polish_dtypes(res)
-    res = permute_columns(res, [
-                                "Pk", "Energy", "Area", "Live Time",
-                                "Real Time", "Dead Time (rel)",
-                                "Acquisition Started", "Bkgnd",
-                                "FWHM", "Channel", "Cts/Sec", "%err"
-                                ])
+    # res = permute_columns(res, [
+    #                             "Pk", "Energy", "Area", "Live Time",
+    #                             "Real Time", "Dead Time (rel)",
+    #                             "Acquisition Started", "Bkgnd",
+    #                             "FWHM", "Channel", "Cts/Sec", "%err"
+    #                             ])
     return res
 
 
@@ -130,7 +130,7 @@ def polish_dtypes(df):
             df[col] = df[col].str.split(" ").str[0].apply(add_uncert)
 
     if "Dead Time" in cols:
-        df["Dead Time (rel)"] = 0.01 * (
+        df["Dead Time [%]"] = (
             df["Dead Time"].str.split(" ").str[0]
             ).astype(float)
 
