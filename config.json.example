@@ -1,17 +1,16 @@
 {
     "raw_dir": "raw_reports",
-    "A": 238,
-    "element": "U",
-    "foil_material_rho": "19.010(5)",
-    "foil_thickness": "0.0280(5)",
-    "foil_material_molar_mass": "238.1(12)",
-    "irradiation_time": "30(1) m",
-    "irradiation_start": "01.12.2020 10:31:00",
-    "hl_lower_bound": "1 s",
-    "hl_upper_bound": "1 y",
-    "ig_lower_bound": 0.01,
-    "ig_upper_bound": 100,
-
+    "": {
+        "foil_material_rho": "19.010(5)",
+        "foil_thickness": "0.0280(5)",
+        "foil_material_molar_mass": "238.1(12)",
+        "irradiation_time": "30(1) m",
+        "irradiation_start": "01.12.2020 10:31:00",
+        "hl_lower_bound": "1 s",
+        "hl_upper_bound": "1 d",
+        "ig_lower_bound": 0.01,
+        "ig_upper_bound": 100
+    },
     "-3.RPT": {
         "detector_geometry": 3
     },
