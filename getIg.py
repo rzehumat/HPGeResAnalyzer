@@ -26,13 +26,13 @@ def permute_columns(df, first_cols):
     return df
 
 
-# def append_Igamma(parsed_df, A, element, ig_all_df):
 def append_Igamma(parsed_df, ig_all_df, **kwargs):
     print(kwargs)
-    # if len(A) > 0:
     if "A" in kwargs.keys():
         ig_df = ig_all_df.loc[
-            [f"{kwargs['A']}{kwargs['element']}", f"{int(kwargs['A'])+1}{kwargs['element']}", f"{int(kwargs['A'])+2}{kwargs['element']}"]]
+            [f"{kwargs['A']}{kwargs['element']}",
+             f"{int(kwargs['A'])+1}{kwargs['element']}",
+             f"{int(kwargs['A'])+2}{kwargs['element']}"]]
     else:
         ig_df = ig_all_df
 
@@ -42,7 +42,6 @@ def append_Igamma(parsed_df, ig_all_df, **kwargs):
     joined_df = joined_df.sort_values(by=["Energy", "Pk", "Ig"],
                                       ascending=[True, False, False])
     joined_df["Ig [%]"] = 100 * joined_df["Ig"].rename("Ig [%]")
-    # joined_df = joined_df.drop(columns = ["Ig"])
     joined_df = permute_columns(joined_df, ["Energy", "E_tab", "Ig [%]",
                                             "Area", "Isotope", "sigm_E",
                                             "sigm_Ig", "FWHM", "%err",
