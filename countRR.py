@@ -48,6 +48,8 @@ def countRR(orig_df, mu_df, **kwargs):
     orig_df["sigm_Area"] = 0.01 * orig_df["Area"] * orig_df["%err"]
     orig_df["Area"] = orig_df[
         ["Area", "sigm_Area"]].apply(uncert_series, axis=1)
+    orig_df["Ig"] = orig_df[
+        ["Ig", "sigm_Ig"]].apply(uncert_series, axis=1)
     
     irr_start = pd.to_datetime(kwargs["irradiation_start"], dayfirst=True)
 
@@ -85,8 +87,8 @@ def countRR(orig_df, mu_df, **kwargs):
 
     real_time = lines_df['Real Time'][0]
     live_time = lines_df['Live Time'][0]
-    print(t_irr)
-    print(type(t_irr))
+    print(df["Ig"])
+    print(type(df["Ig"]))
     input("...")
     # ################x
     # uncert status
@@ -97,6 +99,11 @@ def countRR(orig_df, mu_df, **kwargs):
     # Area ... DONE
     # N ... DONE
     # t_irr ... DONE
+    # delta_t ... DONE
+    # real_time ... DONE
+    # Ig ... DONE
+    # rho... DONE
+    # d ... DONE
 
     nom = ((real_time / live_time) * k * lam * df["Area"])
     denom = (N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
