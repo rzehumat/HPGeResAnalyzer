@@ -49,19 +49,26 @@ def unc_to_bracket(num):
 
 
 def polish_res(df):
+    # UGLY, rewrite using for loops
     df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
     df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
     df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
         add_unc, axis=1)
     df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
     df["Area"] = df["Area"].apply(unc_to_bracket)
+    df["RR"] = df["RR"].apply(unc_to_bracket)
+    df["RR_fiss_prod"] = df["RR_fiss_prod"].apply(unc_to_bracket)
     df["Real Time"] = df["Real Time"].apply(unc_to_bracket)
     df["Live Time"] = df["Live Time"].apply(unc_to_bracket)
+    df["Half-life [s]"] = df["Half-life [s]"].apply(unc_to_bracket)
     return df
 
 
 def drop_but_prodmode(df):
     sigm_cols = [x for x in df.columns.to_list() if "sigm_" in x]
+    peak_analysis_report = [x for x in df.columns.to_list() if "Peak Analysis Report" in x]
+
+    auxilliary = ["eps"]
 
     drop_cols = (sigm_cols
                  + ["FWHM", "%err", "Ig", "Dead Time",
@@ -72,7 +79,16 @@ def drop_but_prodmode(df):
                     "Peak Locate Range (in channels)",
                     "Peak Area Range (in channels)",
                     "Identification Energy Tolerance", "Sample Size",
-                    "Efficiency ID"])
+                    "Efficiency ID", "Peak Analysis From Channel",
+                    "Peak Search Sensitivity", "Max Iterations",
+                    "Peak Fit Engine Name", "Stable", "Update",
+                    "Literature cut-off date", "Author(s)", "E(level)",
+                    "Sn(keV)", "References since cut-off", "Sp(keV)",
+                    "Abundance", "Jp", "ENSDF citation",
+                    "Energy Calibration Used Done On",
+                    "Efficiency Calibration Used Done On"]
+                 + auxilliary
+                 + peak_analysis_report)
     return df.drop(columns=drop_cols)
 
 
