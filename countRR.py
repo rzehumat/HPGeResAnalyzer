@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import time
 
 import uncertainties.unumpy as unp
 from uncertainties import ufloat_fromstr
@@ -41,7 +40,8 @@ def countRR(orig_df, mu_df, **kwargs):
     t_irr = parse_time_unc(kwargs["irradiation_time"])
     # irr_end = irr_start + t_irr
 
-    acq_started = pd.to_datetime(orig_df["Acquisition Started"][0], dayfirst=True)
+    acq_started = pd.to_datetime(orig_df["Acquisition Started"][0],
+                                 dayfirst=True)
     delta_t = (acq_started - irr_start).total_seconds()
     # delta_t = int(time.mktime(acq_started.timetuple())) - irr_end
     # delta_t = acq_started.total_seconds() - irr_start.total_seconds()
@@ -65,37 +65,9 @@ def countRR(orig_df, mu_df, **kwargs):
 
     N = mass*AVOGADRO/molar_mass
 
-    print("values")
-    print(f"delta_t is {delta_t}")
-    # input("Press Enter to continue...")
     real_time = lines_df['Real Time'][0]
     live_time = lines_df['Live Time'][0]
-    # real_time = 3800
-    # live_time = 3800
-    print("values are")
-    #input("press")
-    print(real_time)
-    print(live_time)
-    print(k)
-    print(lam)
-    print(df["Area"].head())
-    print(N)
-    print(t_irr)
-    print(delta_t)
-    print(df["eps"].head())
-    print(df["Ig"])
-    #input("out")
-    print("############################################")
-    print("To zkurvené t_irr je")
-    print(t_irr)
-    print("a ta jebnutá lambda")
-    print(lam)
-    print("max lam je")
-    print(lam.max()) 
-    print("min lam je")
-    print(lam.min()) 
-    print("hodnoty lam")
-    print(lam.value_counts())
+
     df["RR"] = ((real_time / live_time)
                 * k * lam * df["Area"].to_numpy()
                 / (
@@ -105,25 +77,9 @@ def countRR(orig_df, mu_df, **kwargs):
     df["RR_fiss_prod"] = (2 / df["fiss_yield"]) * df["RR"]
     print("Reaction rates counted successfully.")
     df = df.append(lines_df)
-    df = df.sort_values(by=["Energy", "FWHM", "Ig [%]"], ascending=[True, True, False])
+    df = df.sort_values(by=["Energy", "FWHM", "Ig [%]"],
+                        ascending=[True, True, False])
     return df
-    # except ZeroDivisionError:
-    #     print("ERROR ZERO division")
-    #     pp = "out/error.csv"
-    #     print(f"saving to {pp}")
-    #     df.to_csv(pp)
-
-    # def calc_uexp(lam_df, delta_t, N):
-    #     length = lam_df.shape[0]
-    #     lam_arr = lam_df.to_numpy()
-    #     res = np.ones(length)
-    #     for i in range(length):
-    #         try:
-    #             res[i] = unp.exp(lam_arr[i] * delta_t) / N
-    #         except OverflowError:
-    #             print(f"Overflow at i = {i} which is lam * delta = {lam_arr[i]*delta_t}")
-    #             res[i] =
-    #     return res
 
 
 if __name__ == "__main__":
