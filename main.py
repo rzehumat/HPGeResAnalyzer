@@ -10,6 +10,7 @@ import uncertainties as uc
 
 from collections import defaultdict
 from pathlib import Path
+from math import isnan
 from addOrigin import addOrigin
 from countRR import countRR
 from getIg import permute_columns
@@ -38,11 +39,28 @@ def add_unc_en(x):
     return '{:.1uS}'.format(uc.ufloat(x[0], 0.5*x[1]))
 
 
+def unc_to_bracket(num):
+    if isnan(num.s):
+        return round(num.n, 2)
+    else:
+        return '{:.1uS}'.format(num)
+
+
 def polish_res(df):
     df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
     df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
-    # df = df.drop(columns=["FWHM", "sigm_E"])
+    df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
+        add_unc, axis=1)
+    df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
+    df["Area"] = df["Area"].apply(unc_to_bracket)
     return df
+
+
+def drop_but_prodmode(df):
+    sigm_cols = [x for x in df.columns.to_list() if "sigm_" in x]
+
+    drop_cols = sigm_cols + ["FWHM", "%err", "Ig"]
+    return df.drop(columns=drop_cols) 
 
 
 print("Available modes (default 0):")
@@ -189,12 +207,16 @@ elif mode == "1":
         df = countRR(df, mu_df, **kwargs)
 
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
+        
+        # format text output to human- and LaTeX-readable
+        df = polish_res(df)
+
+        # drop all unnecessary columns but prodmode
+        df = drop_but_prodmode(df)
 
         # restrict hl and Ig interval
         # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
         hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
-        
-        df = polish_res(df)
         
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
         
