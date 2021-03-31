@@ -34,16 +34,17 @@ def drop_unit(long_str):
 
 
 def add_epsilon_file(df, eps_df, **kwargs):
-    try:
-        df["eps"] = df["E_tab"].apply(
-            lambda x: add_epsilon_val(x, kwargs["detector_geometry"], eps_df))
-    except:
-        print("Seems like this isotope has no gamma lines."
-              "WTF have you measured.")
-        print("I'll at least add detection efficiencies...")
-        df["E_tab"] = df["Energy"]
-        df["eps"] = df["E_tab"].apply(
-            lambda x: add_epsilon_val(x, kwargs['detector_geometry'], eps_df))
+    # try:
+    df["eps"] = df["E_tab"].apply(
+        lambda x: add_epsilon_val(x, kwargs["detector_geometry"], eps_df))
+    # except:
+    #     print("Seems like this isotope has no gamma lines."
+    #           "WTF have you measured.")
+    #     print("I'll at least add detection efficiencies...")
+    #     df["E_tab"] = df["Energy"]
+    #     df["eps"] = df["E_tab"].apply(
+    #         lambda x: add_epsilon_val(x,
+    #                                   kwargs['detector_geometry'], eps_df))
 
     # change the order of columns
     # UGLY

@@ -1,9 +1,14 @@
 import pandas as pd
 import numpy as np
+import uncertainties as uc
 
 import uncertainties.unumpy as unp
 from uncertainties import ufloat_fromstr
 from sys import argv
+
+
+def uncert_series(x):
+    return uc.ufloat(x[0], x[1])
 
 
 def get_mu_one(val, mu_df):
@@ -26,35 +31,40 @@ def parse_time_unc(time_str):
     return num * pd.to_timedelta(f"1 {unit}").total_seconds()
 
 
-# def countRR(orig_df, mu_df, rho, d, mass, molar_mass,
-#             t_irr_str, irr_start_str):
 def countRR(orig_df, mu_df, **kwargs):
     """
     Assumption: One does not measure an isotope after 10 half-lives.
     Therefore we calculate delta_t and compare it with half-lives.
     If delta_t < 10HL => select df[Half-life] > 0.1 delta_t
     """
+    AVOGADRO = float(6.02214076e+23)
+    T_LOW = 2000
+    T_HIGH = 6e+6
+
+    orig_df["Half-life [s]"] = orig_df[
+        ["Half-life [s]", "sigm_Half-life [s]"]].apply(uncert_series, axis=1)
+    orig_df["sigm_Area"] = 0.01 * orig_df["Area"] * orig_df["%err"]
+    orig_df["Area"] = orig_df[
+        ["Area", "sigm_Area"]].apply(uncert_series, axis=1)
+    orig_df["Ig"] = orig_df[
+        ["Ig", "sigm_Ig"]].apply(uncert_series, axis=1)
+
     irr_start = pd.to_datetime(kwargs["irradiation_start"], dayfirst=True)
-    # irr_start = int(time.mktime(irr_start.timetuple()))
-
     t_irr = parse_time_unc(kwargs["irradiation_time"])
-    # irr_end = irr_start + t_irr
-
     acq_started = pd.to_datetime(orig_df["Acquisition Started"][0],
                                  dayfirst=True)
-    delta_t = (acq_started - irr_start).total_seconds()
-    # delta_t = int(time.mktime(acq_started.timetuple())) - irr_end
-    # delta_t = acq_started.total_seconds() - irr_start.total_seconds()
+    delta_t = (acq_started - irr_start).total_seconds() - t_irr
 
+    df_low = orig_df[(orig_df["Half-life [s]"] < T_LOW)]
     df = orig_df[
-        (orig_df["Half-life [s]"] > 0.1 * delta_t)
-        & (orig_df["Half-life [s]"] < pd.to_timedelta("2 y").total_seconds())]
-    lines_df = orig_df[orig_df["FWHM"] > 0]
+        (orig_df["Half-life [s]"] > T_LOW)
+        & (orig_df["Half-life [s]"] < T_HIGH)]
+    lines_df = orig_df[orig_df["E_tab"].isna()]
+    df_high = orig_df[(orig_df["Half-life [s]"] >= T_HIGH)]
 
-    AVOGADRO = float(6.02214076e+23)
     mu = get_mu_col(df["Energy"], mu_df)
-
     mu = mu.astype(np.float64)
+
     rho = ufloat_fromstr(kwargs['foil_material_rho'])
     d = ufloat_fromstr(kwargs['foil_thickness'])
     k = (mu * rho * d) / (1 - unp.exp(- mu * rho * d))
@@ -68,16 +78,19 @@ def countRR(orig_df, mu_df, **kwargs):
     real_time = lines_df['Real Time'][0]
     live_time = lines_df['Live Time'][0]
 
-    df["RR"] = ((real_time / live_time)
-                * k * lam * df["Area"].to_numpy()
-                / (
-                    N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
-                    * (1-unp.exp(-lam * real_time))
-                    * df["eps"] * df["Ig"]))
+    nom = ((real_time / live_time) * k * lam * df["Area"])
+    denom = (N * (1-unp.exp(-lam*t_irr)) * unp.exp(-lam * delta_t)
+             * (1-unp.exp(-lam * real_time))
+             * df["eps"] * df["Ig"])
+
+    df["RR"] = nom / denom
+
     df["RR_fiss_prod"] = (2 / df["fiss_yield"]) * df["RR"]
     print("Reaction rates counted successfully.")
     df = df.append(lines_df)
-    df = df.sort_values(by=["Energy", "FWHM", "Ig [%]"],
+    df = df.append(df_low)
+    df = df.append(df_high)
+    df = df.sort_values(by=["Energy", "Channel", "Ig [%]"],
                         ascending=[True, True, False])
     return df
 

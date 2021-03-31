@@ -17,6 +17,10 @@ from getIg import permute_columns
 OUTPUT_DIR = "out"
 
 
+def add_unc(x):
+    return '{:.1uS}'.format(uc.ufloat(x[0], x[1]))
+
+
 def get_kwargs(config, file_path):
     my_dict = config
     for key in list(config.keys()):
@@ -28,6 +32,17 @@ def get_kwargs(config, file_path):
     for key in tuple(mydict.keys()):
         mydict[key.split('.')[-1]] = mydict.pop(key)
     return mydict
+
+
+def add_unc_en(x):
+    return '{:.1uS}'.format(uc.ufloat(x[0], 0.5*x[1]))
+
+
+def polish_res(df):
+    df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
+    df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
+    # df = df.drop(columns=["FWHM", "sigm_E"])
+    return df
 
 
 print("Available modes (default 0):")
@@ -93,7 +108,7 @@ if mode == "0":
 
         kwargs_df = pd.DataFrame.from_dict(kwargs)
         for j in range(len(file_names)):
-            
+
             # Move to the dict above!!!
             print("Allowed time units [ns, us, ms, s, m, h, d, w, y]")
             print("Expected format '2.45 y'")
@@ -105,7 +120,7 @@ if mode == "0":
                 "Enter minimal Ig to include [in %] (default 0.01 %) = ")
                  or "0.01")
             ig_lower_bound = float(ig_lower_bound)
-            
+
             file_name = file_names[j]
             kwargs = kwargs_df.loc[j].to_dict()
 
@@ -160,7 +175,7 @@ elif mode == "1":
     # UGLY, reuse the loop below
     for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
         raw_df = rptParser.parse_one_RPT(file_path)
-        jsn_config = open("config.json", "r")   
+        jsn_config = open("config.json", "r")
         cfg = json.load(jsn_config)
         kwargs = get_kwargs(cfg, file_path)
 
@@ -174,12 +189,12 @@ elif mode == "1":
         df = countRR(df, mu_df, **kwargs)
 
         # restrict hl and Ig interval
-        hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
+        # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
         hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
-        df = df[((df["Half-life [s]"] <= hl_upper_bound)
-                & (df["Half-life [s]"] >= hl_lower_bound)
+        df = df[
+                (df["Half-life [s]"] >= hl_lower_bound)
                 & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
-                & (df["Ig [%]"] <= kwargs["ig_upper_bound"]))
+                & (df["Ig [%]"] <= kwargs["ig_upper_bound"])
                 | (df["FWHM"] > 0)]
 
         prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
@@ -187,6 +202,7 @@ elif mode == "1":
                "Isotope", "RR", "RR_fiss_prod"]
         cols = fff + prod_cols
         df = permute_columns(df, cols)
+        df = polish_res(df)
         df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
         df[
             (df["FWHM"] > 0)  # to determine the original lines
