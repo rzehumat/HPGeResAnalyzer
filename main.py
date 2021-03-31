@@ -17,6 +17,10 @@ from getIg import permute_columns
 OUTPUT_DIR = "out"
 
 
+def add_unc(x):
+    return '{:.1uS}'.format(uc.ufloat(x[0], x[1]))
+
+
 def get_kwargs(config, file_path):
     my_dict = config
     for key in list(config.keys()):
@@ -30,8 +34,6 @@ def get_kwargs(config, file_path):
     return mydict
 
 
-def add_unc(x):
-    return '{:.1uS}'.format(uc.ufloat(x[0], x[1]))
 
 
 def add_unc_en(x):
@@ -189,12 +191,12 @@ elif mode == "1":
         df = countRR(df, mu_df, **kwargs)
 
         # restrict hl and Ig interval
-        hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
+        # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
         hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
-        df = df[((df["Half-life [s]"] <= hl_upper_bound)
-                & (df["Half-life [s]"] >= hl_lower_bound)
+        df = df[
+                (df["Half-life [s]"] >= hl_lower_bound)
                 & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
-                & (df["Ig [%]"] <= kwargs["ig_upper_bound"]))
+                & (df["Ig [%]"] <= kwargs["ig_upper_bound"])
                 | (df["FWHM"] > 0)]
 
         prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
