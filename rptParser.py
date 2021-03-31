@@ -98,16 +98,16 @@ def polish_dtypes(df):
         "Energy", "FWHM", "Channel", "Cts/Sec", "%err", "Fit",
         "Peak Locate Threshold"
         ]
-    TO_DROP = [
-        "Sample Geometry", "Peak Locate Range (in channels)", "Sample Size",
-        "Dead Time",
-        "Peak Analysis Report                    26.11.2020  5",
-        "Peak Analysis From Channel", "Peak Search Sensitivity",
-        "Max Iterations",
-        "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW",
-        "Fit", "Filename",
-        "Sample Identification", "Sample Type", "Peak Locate Threshold",
-        "Peak Area Range (in channels)", "Efficiency ID"]
+    # TO_DROP = [
+    #     "Sample Geometry", "Peak Locate Range (in channels)", "Sample Size",
+    #     "Dead Time",
+    #     "Peak Analysis Report                    26.11.2020  5",
+    #     "Peak Analysis From Channel", "Peak Search Sensitivity",
+    #     "Max Iterations",
+    #     "Use Fixed FWHM", "Peak Fit Engine Name", "Left", "PW",
+    #     "Fit", "Filename",
+    #     "Sample Identification", "Sample Type", "Peak Locate Threshold",
+    #     "Peak Area Range (in channels)", "Efficiency ID"]
     cols = df.columns.tolist()
     if DATETIME_COLUMN in cols:
         df[DATETIME_COLUMN] = pd.to_datetime(df[DATETIME_COLUMN])
@@ -134,7 +134,7 @@ def polish_dtypes(df):
             df["Dead Time"].str.split(" ").str[0]
             ).astype(float)
 
-    df = df.drop(columns=TO_DROP, errors="ignore")
+    # df = df.drop(columns=TO_DROP, errors="ignore")
     return df
 
 
