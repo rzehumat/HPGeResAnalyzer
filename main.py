@@ -3,6 +3,7 @@ import getIg
 import getEpsilon
 import glob
 import os
+import json
 
 import pandas as pd
 import uncertainties as uc
@@ -11,18 +12,38 @@ from collections import defaultdict
 from pathlib import Path
 from addOrigin import addOrigin
 from countRR import countRR
+from getIg import permute_columns
 
 OUTPUT_DIR = "out"
 
+
+def get_kwargs(config, file_path):
+    my_dict = config
+    for key in list(config.keys()):
+        if key not in file_path:
+            my_dict.pop(key, None)
+    df = pd.json_normalize(my_dict, sep='.')
+    mydict = df.to_dict(orient='records')[0]
+    # Ugly
+    for key in tuple(mydict.keys()):
+        mydict[key.split('.')[-1]] = mydict.pop(key)
+    return mydict
+
+
 print("Available modes (default 0):")
-print("0 ... 'Process dir'")
-# print("1 ... 'Nuclide search': We know the isotope, peak detection efficiency and geometry")
-# print("Parses RPT files, downloads and adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
-# print("2 ... 'Radiation search': We do NOT know the isotopes, peak detection efficiency and geometry")
-# print("Parses RPT files, searches the radiation, adds possible isotopes to peaks, adds I_gamma to peaks, adds epsilons to peaks and saves as csv.")
+print("0 ... 'Process dir' with terminal inputs"
+      "(not recommended due to no error-safety)")
+print("1 ... 'Process dir' with inputs from 'config.json' file (recommended)")
+
+ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
+info_df = pd.read_parquet("aux_data/info_all.pq")
+yield_df = pd.read_csv("aux_data/fissionYield_238U.csv", index_col=0)
+mu_df = pd.read_csv("aux_data/mu_92.csv", index_col=0)
+CALIBRATION_PATH = "aux_data/epsilons.csv"
+eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
 
 print("Select mode:")
-mode = input("[0]/[1]/[2] ") or "0"
+mode = input("[0]/[1]/[2] (default 1)") or "1"
 
 if mode == "0":
     raw_dir = input("Enter relative path to directory"
@@ -43,15 +64,10 @@ if mode == "0":
 
         kwargs = defaultdict(list)
 
-        ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
-        info_df = pd.read_parquet("aux_data/info_all.pq")
-        yield_df = pd.read_csv("aux_data/fissionYield_238U.csv", index_col=0)
-        mu_df = pd.read_csv("aux_data/mu_92.csv", index_col=0)
-        CALIBRATION_PATH = "aux_data/epsilons.csv"
-        eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
-
         file_names = []
         for file_path in glob.iglob(f"{raw_dir}/*.RPT"):
+            # UGLY, rewrite using the "unpacking operator *"
+            # UGLY, reuse the loop-over-RPT-files
             file_names.append(file_path)
             try:
                 file_vars = getEpsilon.file_name_parse(file_path)
@@ -85,7 +101,9 @@ if mode == "0":
                 "Enter maximal Half-life to include (default 2 y) = ") or "2 y"
             hl_upper_bound = pd.to_timedelta(hl_upper_bound).total_seconds()
 
-            ig_lower_bound = input("Enter minimal Ig to include [in %] (default 0.01 %) = ") or "0.01"
+            ig_lower_bound = (input(
+                "Enter minimal Ig to include [in %] (default 0.01 %) = ")
+                 or "0.01")
             ig_lower_bound = float(ig_lower_bound)
             
             file_name = file_names[j]
@@ -116,6 +134,12 @@ if mode == "0":
             df_ig_eps_orig = df_ig_eps_orig[
                 (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
                 | (df_ig_eps_orig["FWHM"] > 0)]
+            prod_cols = [x for x in df_ig_eps_orig.columns.to_list() if "Prod_mode" in x]
+            fff = ["Energy", "E_tab", "Ig [%]", "Area",
+                   "Isotope", "RR", "RR_fiss_prod"]
+            cols = fff + prod_cols
+            df_ig_eps_orig = permute_columns(df_ig_eps_orig, cols)
+
             df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
             df_ig_eps_orig[
                 (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
@@ -130,13 +154,49 @@ if mode == "0":
                 ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
                          index=False)
 
+elif mode == "1":
+    json_config = open("config.json", "r")
+    config = json.load(json_config)
+    # UGLY, reuse the loop below
+    for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
+        raw_df = rptParser.parse_one_RPT(file_path)
+        jsn_config = open("config.json", "r")   
+        cfg = json.load(jsn_config)
+        kwargs = get_kwargs(cfg, file_path)
 
-# elif mode == "1":
-#     print("Expected filenames are like 1H_g80.RPT")
-#     # rpt_dir = input("Relative path to directory with RPT files: ")
-#     rptParser.parse_RPT("raw_reports")
-#     getIg.append_Igamma_dir("parsed_reports/")
-#     getEpsilon.add_epsilon_dir("with_Ig/")
-# elif mode == "2":
-#     rptParser.parse_RPT("naa_raw")
-#     #searchRadiation.search_dir("parsed_reports")
+        df = getIg.append_Igamma(raw_df, ig_all_df, **kwargs)
+        print(f"file_path is {file_path}")
+        df = getEpsilon.add_epsilon_file(df, eps_df, **kwargs)
+
+        file_name = file_path.split("/")[-1].split(".")[-2]
+
+        df = addOrigin(df, info_df, yield_df)
+        df = countRR(df, mu_df, **kwargs)
+
+        # restrict hl and Ig interval
+        hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
+        hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
+        df = df[((df["Half-life [s]"] <= hl_upper_bound)
+                & (df["Half-life [s]"] >= hl_lower_bound)
+                & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
+                & (df["Ig [%]"] <= kwargs["ig_upper_bound"]))
+                | (df["FWHM"] > 0)]
+
+        prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
+        fff = ["Energy", "E_tab", "Ig [%]", "Area",
+               "Isotope", "RR", "RR_fiss_prod"]
+        cols = fff + prod_cols
+        df = permute_columns(df, cols)
+        df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
+        df[
+            (df["FWHM"] > 0)  # to determine the original lines
+            # | (df["Prod_mode_Fission product"])
+            | (df["fiss_yield"] > 0)
+            ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+                     index=False)
+        df[
+            (df["FWHM"] > 0)  # to determine the original lines
+            | (df["Prod_mode_Fast neutron activation"])
+            | (df["Prod_mode_Thermal neutron activation"])
+            ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+                     index=False)

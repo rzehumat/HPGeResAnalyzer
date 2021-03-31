@@ -25,7 +25,6 @@ def add_epsilon_dir(parsed_dir):
     Path("./with_eps").mkdir(parents=True, exist_ok=True)
     for parsed_file in glob.iglob(f"{parsed_dir}/*.csv"):
         geom = (parsed_file.split('.')[-2]).split('_g')[-1]
-        print(geom)
         print(f"Geom is {geom} mm.")
         add_epsilon_file(parsed_file, geom, eps_df)
 
@@ -34,24 +33,24 @@ def drop_unit(long_str):
     return float(long_str.split(' ')[0])
 
 
-def add_epsilon_file(df, geom, eps_df):
+def add_epsilon_file(df, eps_df, **kwargs):
     try:
         df["eps"] = df["E_tab"].apply(
-            lambda x: add_epsilon_val(x, geom, eps_df))
+            lambda x: add_epsilon_val(x, kwargs["detector_geometry"], eps_df))
     except:
         print("Seems like this isotope has no gamma lines."
               "WTF have you measured.")
         print("I'll at least add detection efficiencies...")
         df["E_tab"] = df["Energy"]
         df["eps"] = df["E_tab"].apply(
-            lambda x: add_epsilon_val(x, geom, eps_df))
+            lambda x: add_epsilon_val(x, kwargs['detector_geometry'], eps_df))
 
     # change the order of columns
     # UGLY
     if "Ig" not in df.columns:
         df["Ig"] = float("NaN")
 
-    df["Geometry"] = geom
+    df["Geometry"] = kwargs['detector_geometry']
     print("Epsilons added")
 
     return df
