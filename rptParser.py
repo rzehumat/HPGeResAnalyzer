@@ -117,7 +117,7 @@ def polish_dtypes(df):
         df[col] = pd.to_numeric(df[col], downcast="integer")
     for col in FLOAT_COLUMNS:
         df[col] = pd.to_numeric(df[col], downcast="float")
-    
+
     col_name = "Identification Energy Tolerance"
     if col_name in cols:
         unit = str(df[col_name][0]).split()[-1]
