@@ -281,7 +281,7 @@ elif mode == "1":
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)
         # to_latex(fiss_df, f"{OUTPUT_DIR}/{file_name}_fissile_products.tex")
-        fiss_df = siunitx_mhchem(fiss_df)
+        # fiss_df = siunitx_mhchem(fiss_df)
         fiss_df_tex = fiss_df.to_latex(index=False,
                                        columns=["Energy", "E_tab", "Ig [%]",
                                                 "Area", "Isotope",
@@ -292,7 +292,8 @@ elif mode == "1":
                                        caption=(f"{file_name}", ""),
                                        label=f"{file_name}",
                                        escape=False,
-                                       longtable=True)
+                                       longtable=True,
+                                       column_format="SSllllll")
         # tex_file = open(f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", "w")
         # tex_file.write(fiss_df_tex)
         # tex_file.close()
