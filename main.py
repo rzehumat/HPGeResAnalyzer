@@ -18,6 +18,14 @@ from getIg import permute_columns
 OUTPUT_DIR = "out"
 
 
+def add_si(num):
+    return f""
+
+
+def siunitx_mhchem(df):
+    df["Energy"] = df["Energy"].apply(add_si)
+
+
 def add_unc(x):
     return '{:.1uS}'.format(uc.ufloat(x[0], x[1]))
 
@@ -268,8 +276,16 @@ elif mode == "1":
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)
         # to_latex(fiss_df, f"{OUTPUT_DIR}/{file_name}_fissile_products.tex")
-        # fiss_df_si = siunitx_mchem(fiss_df)
-        fiss_df_tex = fiss_df.to_latex(index=False, buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", na_rep="", position="h", caption=(f"{file_name}", ""), label=f"{file_name}")
+        fiss_df = siunitx_mhchem(fiss_df)
+        fiss_df_tex = fiss_df.to_latex(index=False,
+                                       columns=["Energy", "E_tab", "Ig [%]",
+                                                "Area", "Isotope",
+                                                "RR_fiss_prod", "fiss_yield",
+                                                "Half-life [s]"],
+                                       buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
+                                       na_rep="", position="h",
+                                       caption=(f"{file_name}", ""),
+                                       label=f"{file_name}")
         # tex_file = open(f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", "w")
         # tex_file.write(fiss_df_tex)
         # tex_file.close()
