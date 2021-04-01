@@ -38,8 +38,6 @@ def countRR(orig_df, mu_df, **kwargs):
     If delta_t < 10HL => select df[Half-life] > 0.1 delta_t
     """
     AVOGADRO = float(6.02214076e+23)
-    T_LOW = 2000
-    T_HIGH = 6e+6
 
     orig_df["Half-life [s]"] = orig_df[
         ["Half-life [s]", "sigm_Half-life [s]"]].apply(uncert_series, axis=1)
@@ -54,6 +52,8 @@ def countRR(orig_df, mu_df, **kwargs):
     acq_started = pd.to_datetime(orig_df["Acquisition Started"][0],
                                  dayfirst=True)
     delta_t = (acq_started - irr_start).total_seconds() - t_irr
+    T_LOW = 0.05 * delta_t
+    T_HIGH = 6e+6
 
     df_low = orig_df[(orig_df["Half-life [s]"] < T_LOW)]
     df = orig_df[
