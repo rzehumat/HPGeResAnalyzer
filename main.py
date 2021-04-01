@@ -19,17 +19,16 @@ from getIg import permute_columns
 OUTPUT_DIR = "out"
 
 
-# def add_si(num):
-#     # return f"\\num{{{num}}}"
-#     return "\num{{{}}}".format(num)
-# 
-# 
-# def siunitx_mhchem(df):
-#     for col in ["Energy", "E_tab", "Ig [%]",
-#                 "Area", "RR_fiss_prod", "fiss_yield",
-#                 "Half-life [s]"]:
-#         df[col] = df[col].apply(add_si)
-#     return df
+def add_si(num):
+    # return f"\\num{{{num}}}"
+    return "\num{{{}}}".format(num)
+
+
+def siunitx_mhchem(df):
+    for col in ["Area", "RR_fiss_prod", "fiss_yield",
+                "Half-life [s]"]:
+        df[col] = df[col].apply(add_si)
+    return df
 
 
 def to_mhchem(isotope_str):
@@ -288,7 +287,7 @@ elif mode == "1":
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)
         # to_latex(fiss_df, f"{OUTPUT_DIR}/{file_name}_fissile_products.tex")
-        # fiss_df = siunitx_mhchem(fiss_df)
+        fiss_df = siunitx_mhchem(fiss_df)
         fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
         fiss_df_tex = fiss_df.to_latex(index=False,
                                        columns=["Energy", "E_tab", "Ig [%]",
