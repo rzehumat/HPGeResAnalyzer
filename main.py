@@ -19,11 +19,16 @@ OUTPUT_DIR = "out"
 
 
 def add_si(num):
-    return f""
+    # return f"\\num{{{num}}}"
+    return "\num{{{}}}".format(num)
 
 
 def siunitx_mhchem(df):
-    df["Energy"] = df["Energy"].apply(add_si)
+    for col in ["Energy", "E_tab", "Ig [%]",
+                "Area", "RR_fiss_prod", "fiss_yield",
+                "Half-life [s]"]:
+        df[col] = df[col].apply(add_si)
+    return df
 
 
 def add_unc(x):
@@ -285,7 +290,9 @@ elif mode == "1":
                                        buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
                                        na_rep="", position="h",
                                        caption=(f"{file_name}", ""),
-                                       label=f"{file_name}")
+                                       label=f"{file_name}",
+                                       escape=False,
+                                       longtable=True)
         # tex_file = open(f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", "w")
         # tex_file.write(fiss_df_tex)
         # tex_file.close()
