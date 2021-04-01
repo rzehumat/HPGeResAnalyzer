@@ -52,11 +52,13 @@ def polish_res(df):
     # UGLY, rewrite using for loops
     df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
     df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
+    df["old_fiss_yield"] = df["fiss_yield"].copy()
     df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
         add_unc, axis=1)
     df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
     df["Area"] = df["Area"].apply(unc_to_bracket)
     df["RR"] = df["RR"].apply(unc_to_bracket)
+    df["old_RR_fiss_prod"] = df["RR_fiss_prod"].copy()
     df["RR_fiss_prod"] = df["RR_fiss_prod"].apply(unc_to_bracket)
     df["Real Time"] = df["Real Time"].apply(unc_to_bracket)
     df["Live Time"] = df["Live Time"].apply(unc_to_bracket)
@@ -238,16 +240,40 @@ elif mode == "1":
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
         
         # format text output to human- and LaTeX-readable
-        df = polish_res(df)
+        polished_df = polish_res(df)
 
         # drop all unnecessary columns but prodmode
-        df = drop_but_prodmode(df)
+        dropped_df = drop_but_prodmode(polished_df)
 
         # restrict hl and Ig interval
         # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
         hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
         
-        df.to_csv(f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
+        dropped_df.to_csv(f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
+        
+        fiss_df = dropped_df[
+            (dropped_df["E_tab"].isna())  # to determine the original lines
+            # | (df["Prod_mode_Fission product"])
+            | (dropped_df["old_RR_fiss_prod"] > 0)
+            ]
+        prod_cols = [x for x in fiss_df.columns.to_list() if "Prod_mode" in x]
+        fiss_df = fiss_df.drop(columns=prod_cols)
+
+        first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                      "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
+        fiss_df = permute_columns(fiss_df, first_cols)
+
+        fiss_df = fiss_df[(fiss_df["old_RR_fiss_prod"] > 1e-17) & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
+        
+        fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+                       index=False)
+        # to_latex(fiss_df, f"{OUTPUT_DIR}/{file_name}_fissile_products.tex")
+        # fiss_df_si = siunitx_mchem(fiss_df)
+        fiss_df_tex = fiss_df.to_latex(index=False, buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", na_rep="", position="h", caption=(f"{file_name}", ""), label=f"{file_name}")
+        # tex_file = open(f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", "w")
+        # tex_file.write(fiss_df_tex)
+        # tex_file.close()
+
         
         # df = df[
         #         (df["Half-life [s]"] >= hl_lower_bound)
