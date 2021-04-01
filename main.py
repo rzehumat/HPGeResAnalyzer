@@ -62,7 +62,7 @@ def unc_to_bracket(num):
     if isinstance(num, float):
         return num
     elif isnan(num.s):
-        return round(num.n, 2)
+        return num.n
     else:
         return '{:.1uS}'.format(num)
 
@@ -267,6 +267,10 @@ elif mode == "1":
         # restrict hl and Ig interval
         # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
         hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
+
+        # print(df[df["Isotope"] == "131Te"]["Ig"].iloc[0].n > 0)
+        # print(type(0.005))
+        # input("---")
         
         dropped_df.to_csv(f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
         
