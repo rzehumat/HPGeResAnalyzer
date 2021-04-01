@@ -55,6 +55,7 @@ def parse_isotopes_range(z_min, z_max):
 
 
 def process_A(A):
+    # UGLY
     A = A.strip()
     if str(A)[-1] == "m":
         str_A = "0" + str(int(A[:-1]) + 300)
