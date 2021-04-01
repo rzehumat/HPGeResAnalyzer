@@ -293,7 +293,7 @@ elif mode == "1":
                                        label=f"{file_name}",
                                        escape=False,
                                        longtable=True,
-                                       column_format="SSllllll")
+                                       column_format="SSSSlSSS")
         # tex_file = open(f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", "w")
         # tex_file.write(fiss_df_tex)
         # tex_file.close()
