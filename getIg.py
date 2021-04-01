@@ -42,11 +42,6 @@ def append_Igamma(parsed_df, ig_all_df, **kwargs):
     joined_df = joined_df.sort_values(by=["Energy", "Pk", "Ig"],
                                       ascending=[True, False, False])
     joined_df["Ig [%]"] = 100 * joined_df["Ig"].rename("Ig [%]")
-    # joined_df = permute_columns(joined_df, ["Energy", "E_tab", "Ig [%]",
-    #                                         "Area", "Isotope", "sigm_E",
-    #                                         "sigm_Ig", "FWHM", "%err",
-    #                                         "Live Time", "Real Time",
-    #                                         "Dead Time (rel)"])
 
     return joined_df
 

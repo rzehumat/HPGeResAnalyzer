@@ -20,7 +20,6 @@ OUTPUT_DIR = "out"
 
 
 def add_si(num):
-    # return f"\\num{{{num}}}"
     return "\num{{{}}}".format(num)
 
 
@@ -71,23 +70,23 @@ def polish_res(df):
     # UGLY, rewrite using for loops
     df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
     df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
-    df["old_fiss_yield"] = df["fiss_yield"].copy()
     df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
         add_unc, axis=1)
+    df["old_fiss_yield"] = df["fiss_yield"].copy()
     df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
-    df["Area"] = df["Area"].apply(unc_to_bracket)
-    df["RR"] = df["RR"].apply(unc_to_bracket)
     df["old_RR_fiss_prod"] = df["RR_fiss_prod"].copy()
-    df["RR_fiss_prod"] = df["RR_fiss_prod"].apply(unc_to_bracket)
-    df["Real Time"] = df["Real Time"].apply(unc_to_bracket)
-    df["Live Time"] = df["Live Time"].apply(unc_to_bracket)
-    df["Half-life [s]"] = df["Half-life [s]"].apply(unc_to_bracket)
+
+    for col in ["RR", "Area", "RR_fiss_prod", "Real Time",
+                "Live Time", "Half-life [s]"]:
+        df[col] = df[col].apply(unc_to_bracket)
+
     return df
 
 
 def drop_but_prodmode(df):
     sigm_cols = [x for x in df.columns.to_list() if "sigm_" in x]
-    peak_analysis_report = [x for x in df.columns.to_list() if "Peak Analysis Report" in x]
+    peak_analysis_report = [
+        x for x in df.columns.to_list() if "Peak Analysis Report" in x]
 
     auxilliary = ["eps"]
 
@@ -196,9 +195,7 @@ if mode == "0":
             df_ig = getIg.append_Igamma(raw_df, kwargs["A"],
                                         kwargs["element"], ig_all_df)
             df_ig_eps = getEpsilon.add_epsilon_file(
-                                                    df_ig,
-                                                    kwargs["detector_geometry"],
-                                                    eps_df)
+                df_ig, kwargs["detector_geometry"], eps_df)
 
             file_name = file_name.split("/")[-1].split(".")[-2]
 
@@ -217,7 +214,8 @@ if mode == "0":
             df_ig_eps_orig = df_ig_eps_orig[
                 (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
                 | (df_ig_eps_orig["FWHM"] > 0)]
-            prod_cols = [x for x in df_ig_eps_orig.columns.to_list() if "Prod_mode" in x]
+            prod_cols = [
+                x for x in df_ig_eps_orig.columns.to_list() if "Prod_mode" in x]
             fff = ["Energy", "E_tab", "Ig [%]", "Area",
                    "Isotope", "RR", "RR_fiss_prod"]
             cols = fff + prod_cols
@@ -257,7 +255,7 @@ elif mode == "1":
         df = countRR(df, mu_df, **kwargs)
 
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
-        
+
         # format text output to human- and LaTeX-readable
         polished_df = polish_res(df)
 
@@ -266,17 +264,14 @@ elif mode == "1":
 
         # restrict hl and Ig interval
         # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
-        hl_lower_bound = pd.to_timedelta(kwargs['hl_lower_bound']).total_seconds()
+        hl_lower_bound = pd.to_timedelta(
+            kwargs['hl_lower_bound']).total_seconds()
 
-        # print(df[df["Isotope"] == "131Te"]["Ig"].iloc[0].n > 0)
-        # print(type(0.005))
-        # input("---")
-        
-        dropped_df.to_csv(f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
-        
+        dropped_df.to_csv(
+            f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
+
         fiss_df = dropped_df[
             (dropped_df["E_tab"].isna())  # to determine the original lines
-            # | (df["Prod_mode_Fission product"])
             | (dropped_df["old_RR_fiss_prod"] > 0)
             ]
         prod_cols = [x for x in fiss_df.columns.to_list() if "Prod_mode" in x]
@@ -286,11 +281,12 @@ elif mode == "1":
                       "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
         fiss_df = permute_columns(fiss_df, first_cols)
 
-        fiss_df = fiss_df[(fiss_df["old_RR_fiss_prod"] > 1e-17) & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
-        
+        fiss_df = fiss_df[
+            (fiss_df["old_RR_fiss_prod"] > 1e-17)
+            & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
+
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)
-        # to_latex(fiss_df, f"{OUTPUT_DIR}/{file_name}_fissile_products.tex")
         fiss_df = siunitx_mhchem(fiss_df)
         fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
         fiss_df_tex = fiss_df.to_latex(index=False,
@@ -305,11 +301,7 @@ elif mode == "1":
                                        escape=False,
                                        longtable=True,
                                        column_format="SSSSlSSS")
-        # tex_file = open(f"{OUTPUT_DIR}/{file_name}_fissile_products.tex", "w")
-        # tex_file.write(fiss_df_tex)
-        # tex_file.close()
 
-        
         # df = df[
         #         (df["Half-life [s]"] >= hl_lower_bound)
         #         & (df["Ig [%]"] >= kwargs["ig_lower_bound"])

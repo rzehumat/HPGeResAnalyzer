@@ -38,7 +38,6 @@ def countRR(orig_df, mu_df, **kwargs):
     If delta_t < 10HL => select df[Half-life] > 0.1 delta_t
     """
     AVOGADRO = float(6.02214076e+23)
-    # T_LOW = 200
 
     orig_df["Half-life [s]"] = orig_df[
         ["Half-life [s]", "sigm_Half-life [s]"]].apply(uncert_series, axis=1)
