@@ -4,6 +4,7 @@ import getEpsilon
 import glob
 import os
 import json
+import re
 
 import pandas as pd
 import uncertainties as uc
@@ -18,17 +19,23 @@ from getIg import permute_columns
 OUTPUT_DIR = "out"
 
 
-def add_si(num):
-    # return f"\\num{{{num}}}"
-    return "\num{{{}}}".format(num)
+# def add_si(num):
+#     # return f"\\num{{{num}}}"
+#     return "\num{{{}}}".format(num)
+# 
+# 
+# def siunitx_mhchem(df):
+#     for col in ["Energy", "E_tab", "Ig [%]",
+#                 "Area", "RR_fiss_prod", "fiss_yield",
+#                 "Half-life [s]"]:
+#         df[col] = df[col].apply(add_si)
+#     return df
 
 
-def siunitx_mhchem(df):
-    for col in ["Energy", "E_tab", "Ig [%]",
-                "Area", "RR_fiss_prod", "fiss_yield",
-                "Half-life [s]"]:
-        df[col] = df[col].apply(add_si)
-    return df
+def to_mhchem(isotope_str):
+    element = re.findall(r'[A-Z]{1}.*', isotope_str)[0]
+    A = isotope_str.replace(element, "")
+    return "\ce{{^{{{}}}{}}}".format(A, element)
 
 
 def add_unc(x):
@@ -282,6 +289,7 @@ elif mode == "1":
                        index=False)
         # to_latex(fiss_df, f"{OUTPUT_DIR}/{file_name}_fissile_products.tex")
         # fiss_df = siunitx_mhchem(fiss_df)
+        fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
         fiss_df_tex = fiss_df.to_latex(index=False,
                                        columns=["Energy", "E_tab", "Ig [%]",
                                                 "Area", "Isotope",
