@@ -292,13 +292,12 @@ elif mode == "1":
             buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
             na_rep="", position="h",
             caption=(f"{file_name}", ""),
-            label=f"{file_name}",
+            label=f"{file_name[:5]}-rc",
             escape=False,
             longtable=True,
-            column_format="SSSSlSSS")
+            column_format="SScclSSS")
 
         print("done")
-        # input("kkkkkkkkkkkkkkkkkkkkkkkk")
 
         dropped_df.to_csv(
             f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
@@ -330,10 +329,10 @@ elif mode == "1":
                                        buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
                                        na_rep="", position="h",
                                        caption=(f"{file_name}", ""),
-                                       label=f"{file_name}",
+                                       label=f"{file_name[:5]}-f",
                                        escape=False,
                                        longtable=True,
-                                       column_format="SSSSlSSS")
+                                       column_format="SScclSSS")
 
         # df = df[
         #         (df["Half-life [s]"] >= hl_lower_bound)
