@@ -24,8 +24,9 @@ def add_si(num):
 
 
 def siunitx_mhchem(df):
-    for col in ["Area", "RR_fiss_prod", "fiss_yield",
-                "Half-life [s]"]:
+    # for col in ["Area", "RR_fiss_prod", "fiss_yield",
+    #             "Half-life [s]"]:
+    for col in ["Area", "RR", "Half-life [s]"]:
         df[col] = df[col].apply(add_si)
     return df
 
@@ -266,6 +267,38 @@ elif mode == "1":
         # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
         hl_lower_bound = pd.to_timedelta(
             kwargs['hl_lower_bound']).total_seconds()
+
+        activation_df = dropped_df[
+                (dropped_df["Isotope"] == "238U")
+                | (df["Isotope"] == "239U")
+                | (df["Isotope"] == "239Np")
+                | (df["Isotope"] == "239Pu")]
+        
+        prod_cols = [x for x in activation_df.columns.to_list() if "Prod_mode" in x]
+        activation_df = activation_df.drop(columns=prod_cols)
+
+        first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                      "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
+        activation_df = permute_columns(activation_df, first_cols)
+        
+        activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+                             index=False)
+        activation_df = siunitx_mhchem(activation_df)
+        activation_df["Isotope"] = activation_df["Isotope"].apply(to_mhchem)
+        activation_df_tex = activation_df.to_latex(
+            index=False,
+            columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                     "RR", "Half-life [s]"],
+            buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
+            na_rep="", position="h",
+            caption=(f"{file_name}", ""),
+            label=f"{file_name}",
+            escape=False,
+            longtable=True,
+            column_format="SSSSlSSS")
+
+        print("done")
+        # input("kkkkkkkkkkkkkkkkkkkkkkkk")
 
         dropped_df.to_csv(
             f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
