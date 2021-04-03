@@ -68,6 +68,7 @@ def countRR(orig_df, mu_df, **kwargs):
     rho = ufloat_fromstr(kwargs['foil_material_rho'])
     d = ufloat_fromstr(kwargs['foil_thickness'])
     k = (mu * rho * d) / (1 - unp.exp(- mu * rho * d))
+
     lam = np.log(2) / df["Half-life [s]"]
 
     mass = ufloat_fromstr(kwargs['foil_mass'])

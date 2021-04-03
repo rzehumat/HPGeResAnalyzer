@@ -46,22 +46,24 @@ def append_Igamma(parsed_df, ig_all_df, **kwargs):
     return joined_df
 
 
-def add_Ig(df, ig, ig_thr=1.0):
+def add_Ig(df, ig, ig_thr=0.01):
     # UGLY, never for-loop in pandas
     added_df = df
-    print(df.shape[0])
     for row in range(df.shape[0]):
         condition = (
-            (df.loc[row, "Energy"] - df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"])
-            & (df.loc[row, "Energy"] + df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"])
-            & ig["Ig"] > 0.01*ig_thr)
+            (df.loc[row, "Energy"] - 0.5*df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"])
+            & (df.loc[row, "Energy"] + 0.5*df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"])
+            & (ig["Ig"] > ig_thr))
 
         suitable_lines = ig[condition]
         suitable_lines["Isotope"] = ig[condition].index
-        suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"]
-        suitable_lines.loc[:, ("Area")] = df.loc[row, "Area"]
-        suitable_lines.loc[:, ("FWHM")] = df.loc[row, "FWHM"]
-        suitable_lines.loc[:, ("%err")] = df.loc[row, "%err"]
+        for col in ["Energy", "Area", "FWHM", "%err"]:
+            suitable_lines.loc[:, (col)] = df.loc[row, col]
+
+        # suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"]
+        # suitable_lines.loc[:, ("Area")] = df.loc[row, "Area"]
+        # suitable_lines.loc[:, ("FWHM")] = df.loc[row, "FWHM"]
+        # suitable_lines.loc[:, ("%err")] = df.loc[row, "%err"]
 
         added_df = added_df.append(suitable_lines)
 
