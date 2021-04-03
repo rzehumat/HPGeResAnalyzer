@@ -268,6 +268,8 @@ elif mode == "1":
         hl_lower_bound = pd.to_timedelta(
             kwargs['hl_lower_bound']).total_seconds()
 
+        dropped_df = dropped_df[dropped_df["Half-life [s]"] > hl_lower_bound]
+
         activation_df = dropped_df[
                 (dropped_df["Isotope"] == "238U")
                 | (df["Isotope"] == "239U")
@@ -292,7 +294,7 @@ elif mode == "1":
             buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
             na_rep="", position="h",
             caption=(f"{file_name}", ""),
-            label=f"{file_name[:5]}-rc",
+            label=f"{file_name}-rc",
             escape=False,
             longtable=True,
             column_format="SScclSSS")
@@ -313,9 +315,9 @@ elif mode == "1":
                       "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
         fiss_df = permute_columns(fiss_df, first_cols)
 
-        fiss_df = fiss_df[
-            (fiss_df["old_RR_fiss_prod"] > 1e-17)
-            & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
+        # fiss_df = fiss_df[
+        #     (fiss_df["old_RR_fiss_prod"] > 1e-17)
+        #     & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
 
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)
@@ -329,7 +331,7 @@ elif mode == "1":
                                        buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
                                        na_rep="", position="h",
                                        caption=(f"{file_name}", ""),
-                                       label=f"{file_name[:5]}-f",
+                                       label=f"{file_name}-f",
                                        escape=False,
                                        longtable=True,
                                        column_format="SScclSSS")
