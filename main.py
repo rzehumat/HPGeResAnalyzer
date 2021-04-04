@@ -7,6 +7,7 @@ import json
 import re
 
 import pandas as pd
+import numpy as np
 import uncertainties as uc
 
 from collections import defaultdict
@@ -15,12 +16,46 @@ from math import isnan
 from addOrigin import addOrigin
 from countRR import countRR
 from getIg import permute_columns
+from uncertainties import unumpy
 
 OUTPUT_DIR = "out"
 
 
+def average_rr(rr_uc_df, kind):
+
+    # print(rr_uc_df)
+    # input("...")
+    rr = pd.DataFrame(unumpy.nominal_values(rr_uc_df))
+    # print(rr)
+    # input("...")
+    std = pd.DataFrame(unumpy.std_devs(rr_uc_df))
+    std[0] = std[0].fillna(0.01 * rr[0])
+    std = std[~rr.isna()].dropna()
+    rr = rr.dropna()
+    # print(std)
+    # input("...")
+    # print(std)
+    # input("...")
+    weights = 1 / (std * std)
+    # print(weights)
+    # input("...")
+    RR = (weights * rr).sum()/weights.sum()
+    # print(RR)
+    # input("...")
+    std_RR = np.sqrt(1/weights.sum())
+    # print(std_RR)
+    # input("...")
+    result = add_si(add_unc([RR.loc[0], std_RR.loc[0]]))
+    # print(result)
+    # input("...")
+
+    out_file = open(f"{OUTPUT_DIR}/{file_name}_{kind}_result.txt", "w")
+    out_file.write(result)
+    out_file.close()
+
+
 def add_si(num):
-    return "\num{{{}}}".format(num)
+    return "\\num{{{}}}".format(num)
 
 
 def siunitx_mhchem(df):
@@ -320,7 +355,7 @@ elif mode == "1":
             dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
 
             dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
-            dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
+            # dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
 
             dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
             dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
@@ -328,6 +363,8 @@ elif mode == "1":
             dh = dh.append(dg)
 
         fiss_df["mod_fiss_RR"] = dh["mod_fiss_RR"]
+        average_rr(fiss_df["mod_fiss_RR"], "fiss")
+        dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
         fiss_df["mod_Area"] = dh["mod_Area"]
 
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
@@ -337,6 +374,7 @@ elif mode == "1":
 
         activation_df = activation_df[
             ~activation_df["old_Energy"].isin(fiss_df["old_Energy"])]
+        average_rr(activation_df["old_RR"], "activation")
         activation_df_tex = activation_df.to_latex(
             index=False,
             columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
