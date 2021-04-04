@@ -62,18 +62,21 @@ def unc_to_bracket(num):
     if isinstance(num, float):
         return num
     elif isnan(num.s):
-        return num.n
+        num = uc.ufloat(num.n, 0.01*num.n)
+        return '{:.1uS}'.format(num)
     else:
         return '{:.1uS}'.format(num)
 
 
 def polish_res(df):
     # UGLY, rewrite using for loops
+    df["old_Energy"] = df["Energy"].copy()
     df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
     df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
     df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
         add_unc, axis=1)
     df["old_fiss_yield"] = df["fiss_yield"].copy()
+    df["old_RR"] = df["RR"].copy()
     df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
     df["old_RR_fiss_prod"] = df["RR_fiss_prod"].copy()
 
@@ -292,19 +295,20 @@ elif mode == "1":
                              index=False)
         activation_df = siunitx_mhchem(activation_df)
         activation_df["Isotope"] = activation_df["Isotope"].apply(to_mhchem)
-        activation_df_tex = activation_df.to_latex(
-            index=False,
-            columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-                     "RR", "Half-life [s]"],
-            buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
-            na_rep="", position="h",
-            caption=(f"{file_name}", ""),
-            label=f"{file_name}-rc",
-            escape=False,
-            longtable=True,
-            column_format="SScclSSS")
+        # activation_df = activation_df[activation_df["Energy"].isin(fiss)]
+        # activation_df_tex = activation_df.to_latex(
+        #     index=False,
+        #     columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+        #              "RR", "Half-life [s]"],
+        #     buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
+        #     na_rep="", position="h",
+        #     caption=(f"{file_name}", ""),
+        #     label=f"{file_name}-rc",
+        #     escape=False,
+        #     longtable=True,
+        #     column_format="SScclSSS")
 
-        print("done")
+        # print("done")
 
         dropped_df.to_csv(
             f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
@@ -329,6 +333,21 @@ elif mode == "1":
                        index=False)
         fiss_df = siunitx_mhchem(fiss_df)
         fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
+        
+        activation_df = activation_df[
+            ~activation_df["old_Energy"].isin(fiss_df["old_Energy"])]
+        activation_df_tex = activation_df.to_latex(
+            index=False,
+            columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                     "RR", "Half-life [s]"],
+            buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
+            na_rep="", position="h",
+            caption=(f"{file_name}", ""),
+            label=f"{file_name}-rc",
+            escape=False,
+            longtable=True,
+            column_format="SScclSSS")
+        
         fiss_df_tex = fiss_df.to_latex(index=False,
                                        columns=["Energy", "E_tab", "Ig [%]",
                                                 "Area", "Isotope",

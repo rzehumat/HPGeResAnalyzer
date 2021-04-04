@@ -55,7 +55,7 @@ def countRR(orig_df, mu_df, **kwargs):
     T_LOW = 0.1 * delta_t
     T_HIGH = 6e+6
 
-    df_low = orig_df[(orig_df["Half-life [s]"] < T_LOW)]
+    # df_low = orig_df[(orig_df["Half-life [s]"] < T_LOW)]
     df = orig_df[
         (orig_df["Half-life [s]"] > T_LOW)
         & (orig_df["Half-life [s]"] < T_HIGH)]
