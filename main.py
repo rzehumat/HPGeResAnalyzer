@@ -314,17 +314,17 @@ elif mode == "1":
 
         for energy in fiss_df["old_Energy"].unique():
             dg = fiss_df[fiss_df["old_Energy"] == energy]
-            
+
             dg["rel_fiss_RR"] = 1e+16 * dg["old_RR_fiss_prod"]
             dg["prod_exc"] = dg["rel_fiss_RR"].product() / dg["rel_fiss_RR"]
             dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
-            
+
             dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
             dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
-            
+
             dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
             dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
-            
+
             dh = dh.append(dg)
 
         fiss_df["mod_fiss_RR"] = dh["mod_fiss_RR"]
@@ -334,7 +334,7 @@ elif mode == "1":
                        index=False)
         fiss_df = siunitx_mhchem(fiss_df)
         fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
-        
+
         activation_df = activation_df[
             ~activation_df["old_Energy"].isin(fiss_df["old_Energy"])]
         activation_df_tex = activation_df.to_latex(
@@ -348,7 +348,7 @@ elif mode == "1":
             escape=False,
             longtable=True,
             column_format="SScclSSS")
-        
+
         fiss_df_tex = fiss_df.to_latex(
             index=False,
             columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area",
