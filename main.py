@@ -219,7 +219,8 @@ if mode == "0":
                 (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
                 | (df_ig_eps_orig["FWHM"] > 0)]
             prod_cols = [
-                x for x in df_ig_eps_orig.columns.to_list() if "Prod_mode" in x]
+                x for x in df_ig_eps_orig.columns.to_list()
+                if "Prod_mode" in x]
             fff = ["Energy", "E_tab", "Ig [%]", "Area",
                    "Isotope", "RR", "RR_fiss_prod"]
             cols = fff + prod_cols
@@ -259,7 +260,7 @@ elif mode == "1":
         df = countRR(df, mu_df, **kwargs)
 
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
-        
+
         hl_lower_bound = pd.to_timedelta(
             kwargs['hl_lower_bound']).total_seconds()
 
@@ -271,26 +272,21 @@ elif mode == "1":
         # drop all unnecessary columns but prodmode
         dropped_df = drop_but_prodmode(polished_df)
 
-        # restrict hl and Ig interval
-        # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
-
         activation_df = dropped_df[
                 (dropped_df["Isotope"] == "238U")
                 | (df["Isotope"] == "239U")
                 | (df["Isotope"] == "239Np")
                 | (df["Isotope"] == "239Pu")]
         # activation_df = activation_df[activation_df["Ig"] > 0.00001]
-        
-        prod_cols = [x for x in activation_df.columns.to_list() if "Prod_mode" in x]
+
+        prod_cols = [x for x in activation_df.columns.to_list()
+                     if "Prod_mode" in x]
         activation_df = activation_df.drop(columns=prod_cols)
 
         first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
                       "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
         activation_df = permute_columns(activation_df, first_cols)
-        # activation_df = activation_df[
-        #     (activation_df["old_RR_fiss_prod"] > 1e-18)
-        #     & (activation_df["old_RR_fiss_prod"] < 1e-14)]
-        
+
         activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
                              index=False)
         activation_df = siunitx_mhchem(activation_df)
@@ -348,18 +344,17 @@ elif mode == "1":
             longtable=True,
             column_format="SScclSSS")
         
-        fiss_df_tex = fiss_df.to_latex(index=False,
-                                       columns=["Energy", "E_tab", "Ig [%]",
-                                                "Area", "Isotope",
-                                                "RR_fiss_prod", "fiss_yield",
-                                                "Half-life [s]"],
-                                       buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
-                                       na_rep="", position="h",
-                                       caption=(f"{file_name}", ""),
-                                       label=f"{file_name}-f",
-                                       escape=False,
-                                       longtable=True,
-                                       column_format="SScclSSS")
+        fiss_df_tex = fiss_df.to_latex(
+            index=False,
+            columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                     "RR_fiss_prod", "fiss_yield", "Half-life [s]"],
+            buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
+            na_rep="", position="h",
+            caption=(f"{file_name}", ""),
+            label=f"{file_name}-f",
+            escape=False,
+            longtable=True,
+            column_format="SScclSSS")
 
         # df = df[
         #         (df["Half-life [s]"] >= hl_lower_bound)
