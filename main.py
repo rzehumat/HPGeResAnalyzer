@@ -357,6 +357,7 @@ elif mode == "1":
         activation_df = activation_df[
             ~activation_df["old_Energy"].isin(fiss_df["old_Energy"])]
         average_rr(activation_df["old_RR"], "activation")
+        activation_df["Ig [%]"] = activation_df["Ig [%]"].apply(add_si)
         activation_df_tex = activation_df.to_latex(
             index=False,
             columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
@@ -368,12 +369,14 @@ elif mode == "1":
                     "$T_{1/2}$ [\si{s}]"],
             na_rep="", position="h",
             caption=(f"{file_name}", ""),
-            label=f"{file_name}-rc",
+            label=f"{file_name[:5]}-rc",
             escape=False,
             longtable=True,
-            column_format="SScclSSS")
+            column_format="SScclcc")
 
         fiss_df["mod_fiss_RR"] = fiss_df["mod_fiss_RR"].apply(unc_to_bracket)
+        fiss_df["mod_fiss_RR"] = fiss_df["mod_fiss_RR"].apply(add_si)
+        fiss_df["mod_Area"] = fiss_df["mod_Area"].apply(add_si)
         fiss_df_tex = fiss_df.to_latex(
             index=False,
             columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area",
@@ -384,13 +387,13 @@ elif mode == "1":
                     "$S\_{peak}$ [\si{keV}]",
                     "$S\_{mod}$ [\si{keV}]",
                     "Izotop",
-                    "$RR_{(n,f)}$ [\si{cm^{-3} s^{-1}}]",
+                    "\\footnotesize{$\\frac{RR_{(n,f)}}{[\si{cm^{-3} s^{-1}}]}$}",
                     "$Y_f$",
                     "$T_{1/2}$ [\si{s}]"],
             buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
             na_rep="", position="h",
             caption=(f"{file_name}", ""),
-            label=f"{file_name}-f",
+            label=f"{file_name[:5]}-f",
             escape=False,
             longtable=True,
-            column_format="SSccclSSS")
+            column_format="Scccrlrrr")
