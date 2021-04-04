@@ -22,32 +22,15 @@ OUTPUT_DIR = "out"
 
 
 def average_rr(rr_uc_df, kind):
-
-    # print(rr_uc_df)
-    # input("...")
     rr = pd.DataFrame(unumpy.nominal_values(rr_uc_df))
-    # print(rr)
-    # input("...")
     std = pd.DataFrame(unumpy.std_devs(rr_uc_df))
     std[0] = std[0].fillna(0.01 * rr[0])
     std = std[~rr.isna()].dropna()
     rr = rr.dropna()
-    # print(std)
-    # input("...")
-    # print(std)
-    # input("...")
     weights = 1 / (std * std)
-    # print(weights)
-    # input("...")
     RR = (weights * rr).sum()/weights.sum()
-    # print(RR)
-    # input("...")
     std_RR = np.sqrt(1/weights.sum())
-    # print(std_RR)
-    # input("...")
     result = add_si(add_unc([RR.loc[0], std_RR.loc[0]]))
-    # print(result)
-    # input("...")
 
     out_file = open(f"{OUTPUT_DIR}/{file_name}_{kind}_result.txt", "w")
     out_file.write(result)
@@ -355,7 +338,6 @@ elif mode == "1":
             dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
 
             dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
-            # dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
 
             dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
             dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
