@@ -92,7 +92,7 @@ def drop_but_prodmode(df):
     auxilliary = ["eps"]
 
     drop_cols = (sigm_cols
-                 + ["FWHM", "%err", "Ig", "Dead Time",
+                 + ["FWHM", "%err", "Dead Time",
                     "Peak Locate Threshold", "Sample Geometry",
                     "Use Fixed FWHM", "Pk", "IT", "Bkgnd", "Channel",
                     "Left", "PW", "Cts/Sec", "Fit", "Filename",
@@ -256,6 +256,11 @@ elif mode == "1":
         df = countRR(df, mu_df, **kwargs)
 
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
+        
+        hl_lower_bound = pd.to_timedelta(
+            kwargs['hl_lower_bound']).total_seconds()
+
+        df = df[df["Half-life [s]"] > hl_lower_bound]
 
         # format text output to human- and LaTeX-readable
         polished_df = polish_res(df)
@@ -265,16 +270,13 @@ elif mode == "1":
 
         # restrict hl and Ig interval
         # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
-        hl_lower_bound = pd.to_timedelta(
-            kwargs['hl_lower_bound']).total_seconds()
-
-        dropped_df = dropped_df[dropped_df["Half-life [s]"] > hl_lower_bound]
 
         activation_df = dropped_df[
                 (dropped_df["Isotope"] == "238U")
                 | (df["Isotope"] == "239U")
                 | (df["Isotope"] == "239Np")
                 | (df["Isotope"] == "239Pu")]
+        # activation_df = activation_df[activation_df["Ig"] > 0.00001]
         
         prod_cols = [x for x in activation_df.columns.to_list() if "Prod_mode" in x]
         activation_df = activation_df.drop(columns=prod_cols)
@@ -282,6 +284,9 @@ elif mode == "1":
         first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
                       "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
         activation_df = permute_columns(activation_df, first_cols)
+        # activation_df = activation_df[
+        #     (activation_df["old_RR_fiss_prod"] > 1e-18)
+        #     & (activation_df["old_RR_fiss_prod"] < 1e-14)]
         
         activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
                              index=False)
@@ -308,6 +313,7 @@ elif mode == "1":
             (dropped_df["E_tab"].isna())  # to determine the original lines
             | (dropped_df["old_RR_fiss_prod"] > 0)
             ]
+        fiss_df = fiss_df[fiss_df["Ig"] > 0.01]
         prod_cols = [x for x in fiss_df.columns.to_list() if "Prod_mode" in x]
         fiss_df = fiss_df.drop(columns=prod_cols)
 
@@ -315,9 +321,9 @@ elif mode == "1":
                       "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
         fiss_df = permute_columns(fiss_df, first_cols)
 
-        # fiss_df = fiss_df[
-        #     (fiss_df["old_RR_fiss_prod"] > 1e-17)
-        #     & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
+        fiss_df = fiss_df[
+            (fiss_df["old_RR_fiss_prod"] > 1e-18)
+            & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
 
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)

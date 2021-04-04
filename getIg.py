@@ -46,10 +46,14 @@ def append_Igamma(parsed_df, ig_all_df, **kwargs):
     return joined_df
 
 
-def add_Ig(df, ig, ig_thr=0.01):
+def add_Ig(df, ig, ig_thr=1e-8):
     # UGLY, never for-loop in pandas
     added_df = df
     for row in range(df.shape[0]):
+        # condition = (
+        #     (df.loc[row, "Energy"] - 0.5*df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"])
+        #     & (df.loc[row, "Energy"] + 0.5*df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"])
+        #     & (ig["Ig"] > ig_thr))
         condition = (
             (df.loc[row, "Energy"] - 0.5*df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"])
             & (df.loc[row, "Energy"] + 0.5*df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"])
@@ -57,8 +61,12 @@ def add_Ig(df, ig, ig_thr=0.01):
 
         suitable_lines = ig[condition]
         suitable_lines["Isotope"] = ig[condition].index
-        for col in ["Energy", "Area", "FWHM", "%err"]:
-            suitable_lines.loc[:, (col)] = df.loc[row, col]
+        try:
+            for col in ["Energy", "Area", "FWHM", "%err"]:
+                suitable_lines.loc[:, (col)] = df.loc[row, col]
+        
+        except ValueError:
+            continue
 
         # suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"]
         # suitable_lines.loc[:, ("Area")] = df.loc[row, "Area"]

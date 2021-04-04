@@ -89,7 +89,7 @@ def countRR(orig_df, mu_df, **kwargs):
     df["RR_fiss_prod"] = (2 / df["fiss_yield"]) * df["RR"]
     print("Reaction rates counted successfully.")
     df = df.append(lines_df)
-    df = df.append(df_low)
+    # df = df.append(df_low)
     df = df.append(df_high)
     df = df.sort_values(by=["Energy", "Channel", "Ig [%]"],
                         ascending=[True, True, False])
