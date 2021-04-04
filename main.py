@@ -373,6 +373,7 @@ elif mode == "1":
             longtable=True,
             column_format="SScclSSS")
 
+        fiss_df["mod_fiss_RR"] = fiss_df["mod_fiss_RR"].apply(unc_to_bracket)
         fiss_df_tex = fiss_df.to_latex(
             index=False,
             columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area",
