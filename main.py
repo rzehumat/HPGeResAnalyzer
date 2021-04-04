@@ -290,20 +290,6 @@ elif mode == "1":
                              index=False)
         activation_df = siunitx_mhchem(activation_df)
         activation_df["Isotope"] = activation_df["Isotope"].apply(to_mhchem)
-        # activation_df = activation_df[activation_df["Energy"].isin(fiss)]
-        # activation_df_tex = activation_df.to_latex(
-        #     index=False,
-        #     columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-        #              "RR", "Half-life [s]"],
-        #     buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
-        #     na_rep="", position="h",
-        #     caption=(f"{file_name}", ""),
-        #     label=f"{file_name}-rc",
-        #     escape=False,
-        #     longtable=True,
-        #     column_format="SScclSSS")
-
-        # print("done")
 
         dropped_df.to_csv(
             f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
@@ -324,39 +310,22 @@ elif mode == "1":
             (fiss_df["old_RR_fiss_prod"] > 1e-18)
             & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
 
-        # fiss_df["rel_fiss_RR"] = 1e+16 * fiss_df["old_RR_fiss_prod"]
-        # fiss_df["prod_exc"] = float("NaN")
-        # fiss_df["fraction"] = float("NaN")
-
         dh = pd.DataFrame()
 
         for energy in fiss_df["old_Energy"].unique():
             dg = fiss_df[fiss_df["old_Energy"] == energy]
-            # print(dg)
-            # input("...")
+            
             dg["rel_fiss_RR"] = 1e+16 * dg["old_RR_fiss_prod"]
-            # print(dg["rel_fiss_RR"])
-            # input("...")
             dg["prod_exc"] = dg["rel_fiss_RR"].product() / dg["rel_fiss_RR"]
-            # print(dg["prod_exc"])
-            # input("...")
             dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
-            # print(dg["fraction"])
-            # input("...")
+            
             dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
             dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
-            print(dg["mod_fiss_RR"])
-            # input("...")
+            
             dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
             dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
-            print(dg["mod_fiss_RR"])
-            # input("...")
+            
             dh = dh.append(dg)
-
-        print(dh)
-        print(dg["mod_fiss_RR"])
-        print("DH pyco")
-        # input("...")
 
         fiss_df["mod_fiss_RR"] = dh["mod_fiss_RR"]
         fiss_df["mod_Area"] = dh["mod_Area"]
@@ -391,28 +360,3 @@ elif mode == "1":
             escape=False,
             longtable=True,
             column_format="SScclSSS")
-
-        # df = df[
-        #         (df["Half-life [s]"] >= hl_lower_bound)
-        #         & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
-        #         & (df["Ig [%]"] <= kwargs["ig_upper_bound"])
-        #         | (df["FWHM"] > 0)]
-
-        # prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
-        # fff = ["Energy", "E_tab", "Ig [%]", "Area",
-        #        "Isotope", "RR", "RR_fiss_prod"]
-        # cols = fff + prod_cols
-        # df = permute_columns(df, cols)
-        # df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
-        # df[
-        #     (df["FWHM"] > 0)  # to determine the original lines
-        #     # | (df["Prod_mode_Fission product"])
-        #     | (df["fiss_yield"] > 0)
-        #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
-        #              index=False)
-        # df[
-        #     (df["FWHM"] > 0)  # to determine the original lines
-        #     | (df["Prod_mode_Fast neutron activation"])
-        #     | (df["Prod_mode_Thermal neutron activation"])
-        #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
-        #              index=False)
