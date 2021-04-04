@@ -24,8 +24,6 @@ def add_si(num):
 
 
 def siunitx_mhchem(df):
-    # for col in ["Area", "RR_fiss_prod", "fiss_yield",
-    #             "Half-life [s]"]:
     for col in ["Area", "RR", "Half-life [s]"]:
         df[col] = df[col].apply(add_si)
     return df
@@ -71,6 +69,7 @@ def unc_to_bracket(num):
 def polish_res(df):
     # UGLY, rewrite using for loops
     df["old_Energy"] = df["Energy"].copy()
+    df["old_Area"] = df["Area"].copy()
     df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
     df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
     df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
@@ -325,6 +324,43 @@ elif mode == "1":
             (fiss_df["old_RR_fiss_prod"] > 1e-18)
             & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
 
+        # fiss_df["rel_fiss_RR"] = 1e+16 * fiss_df["old_RR_fiss_prod"]
+        # fiss_df["prod_exc"] = float("NaN")
+        # fiss_df["fraction"] = float("NaN")
+
+        dh = pd.DataFrame()
+
+        for energy in fiss_df["old_Energy"].unique():
+            dg = fiss_df[fiss_df["old_Energy"] == energy]
+            # print(dg)
+            # input("...")
+            dg["rel_fiss_RR"] = 1e+16 * dg["old_RR_fiss_prod"]
+            # print(dg["rel_fiss_RR"])
+            # input("...")
+            dg["prod_exc"] = dg["rel_fiss_RR"].product() / dg["rel_fiss_RR"]
+            # print(dg["prod_exc"])
+            # input("...")
+            dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
+            # print(dg["fraction"])
+            # input("...")
+            dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
+            dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
+            print(dg["mod_fiss_RR"])
+            # input("...")
+            dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
+            dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
+            print(dg["mod_fiss_RR"])
+            # input("...")
+            dh = dh.append(dg)
+
+        print(dh)
+        print(dg["mod_fiss_RR"])
+        print("DH pyco")
+        # input("...")
+
+        fiss_df["mod_fiss_RR"] = dh["mod_fiss_RR"]
+        fiss_df["mod_Area"] = dh["mod_Area"]
+
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)
         fiss_df = siunitx_mhchem(fiss_df)
@@ -346,8 +382,8 @@ elif mode == "1":
         
         fiss_df_tex = fiss_df.to_latex(
             index=False,
-            columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-                     "RR_fiss_prod", "fiss_yield", "Half-life [s]"],
+            columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area", "Isotope",
+                     "mod_fiss_RR", "fiss_yield", "Half-life [s]"],
             buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
             na_rep="", position="h",
             caption=(f"{file_name}", ""),
