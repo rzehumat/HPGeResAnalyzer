@@ -351,12 +351,21 @@ elif mode == "1":
         
         fiss_df_tex = fiss_df.to_latex(
             index=False,
-            columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area", "Isotope",
-                     "mod_fiss_RR", "fiss_yield", "Half-life [s]"],
+            columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area",
+                     "Isotope", "mod_fiss_RR", "fiss_yield", "Half-life [s]"],
+            header=["{$E\_{mer}$ [\si{keV}]}",
+                    "{$E\_{tab}$ [\si{keV}]}",
+                    "$I_{\gamma}$ [\%]",
+                    "$S\_{peak}$ [\si{keV}]",
+                    "$S\_{mod}$ [\si{keV}]",
+                    "Izotop",
+                    "$RR_{(n,f)}$ [\si{cm^{-3} s^{-1}}]",
+                    "$Y_f$",
+                    "$T_{1/2}$ [\si{s}]"],
             buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
             na_rep="", position="h",
             caption=(f"{file_name}", ""),
             label=f"{file_name}-f",
             escape=False,
             longtable=True,
-            column_format="SScclSSS")
+            column_format="SSccclSSS")
