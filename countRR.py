@@ -55,7 +55,6 @@ def countRR(orig_df, mu_df, **kwargs):
     T_LOW = 0.1 * delta_t
     T_HIGH = 6e+6
 
-    # df_low = orig_df[(orig_df["Half-life [s]"] < T_LOW)]
     df = orig_df[
         (orig_df["Half-life [s]"] > T_LOW)
         & (orig_df["Half-life [s]"] < T_HIGH)]
@@ -89,7 +88,7 @@ def countRR(orig_df, mu_df, **kwargs):
     df["RR_fiss_prod"] = (2 / df["fiss_yield"]) * df["RR"]
     print("Reaction rates counted successfully.")
     df = df.append(lines_df)
-    # df = df.append(df_low)
+    
     df = df.append(df_high)
     df = df.sort_values(by=["Energy", "Channel", "Ig [%]"],
                         ascending=[True, True, False])

@@ -66,11 +66,6 @@ def add_Ig(df, ig, ig_thr=1e-8):
         except ValueError:
             continue
 
-        # suitable_lines.loc[:, ("Energy")] = df.loc[row, "Energy"]
-        # suitable_lines.loc[:, ("Area")] = df.loc[row, "Area"]
-        # suitable_lines.loc[:, ("FWHM")] = df.loc[row, "FWHM"]
-        # suitable_lines.loc[:, ("%err")] = df.loc[row, "%err"]
-
         added_df = added_df.append(suitable_lines)
 
     print("Ig added")
