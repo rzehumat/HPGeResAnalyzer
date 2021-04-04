@@ -7,6 +7,7 @@ import json
 import re
 
 import pandas as pd
+import numpy as np
 import uncertainties as uc
 
 from collections import defaultdict
@@ -15,17 +16,33 @@ from math import isnan
 from addOrigin import addOrigin
 from countRR import countRR
 from getIg import permute_columns
+from uncertainties import unumpy
 
 OUTPUT_DIR = "out"
 
 
+def average_rr(rr_uc_df, kind):
+    rr = pd.DataFrame(unumpy.nominal_values(rr_uc_df))
+    std = pd.DataFrame(unumpy.std_devs(rr_uc_df))
+    std[0] = std[0].fillna(0.01 * rr[0])
+    std = std[~rr.isna()].dropna()
+    rr = rr.dropna()
+    weights = 1 / (std * std)
+    RR = (weights * rr).sum()/weights.sum()
+    std_RR = np.sqrt(1/weights.sum())
+    result = add_si(add_unc([RR.loc[0], std_RR.loc[0]]))
+
+    out_file = open(f"{OUTPUT_DIR}/{file_name}_{kind}_result.txt", "w")
+    out_file.write(result)
+    out_file.close()
+
+
 def add_si(num):
-    return "\num{{{}}}".format(num)
+    return "\\num{{{}}}".format(num)
 
 
 def siunitx_mhchem(df):
-    for col in ["Area", "RR_fiss_prod", "fiss_yield",
-                "Half-life [s]"]:
+    for col in ["Area", "RR", "Half-life [s]"]:
         df[col] = df[col].apply(add_si)
     return df
 
@@ -61,18 +78,22 @@ def unc_to_bracket(num):
     if isinstance(num, float):
         return num
     elif isnan(num.s):
-        return num.n
+        num = uc.ufloat(num.n, 0.01*num.n)
+        return '{:.1uS}'.format(num)
     else:
         return '{:.1uS}'.format(num)
 
 
 def polish_res(df):
     # UGLY, rewrite using for loops
+    df["old_Energy"] = df["Energy"].copy()
+    df["old_Area"] = df["Area"].copy()
     df["Energy"] = df[["Energy", "FWHM"]].apply(add_unc_en, axis=1)
     df["E_tab"] = df[["E_tab", "sigm_E"]].apply(add_unc, axis=1)
     df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
         add_unc, axis=1)
     df["old_fiss_yield"] = df["fiss_yield"].copy()
+    df["old_RR"] = df["RR"].copy()
     df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
     df["old_RR_fiss_prod"] = df["RR_fiss_prod"].copy()
 
@@ -91,7 +112,7 @@ def drop_but_prodmode(df):
     auxilliary = ["eps"]
 
     drop_cols = (sigm_cols
-                 + ["FWHM", "%err", "Ig", "Dead Time",
+                 + ["FWHM", "%err", "Dead Time",
                     "Peak Locate Threshold", "Sample Geometry",
                     "Use Fixed FWHM", "Pk", "IT", "Bkgnd", "Channel",
                     "Left", "PW", "Cts/Sec", "Fit", "Filename",
@@ -215,7 +236,8 @@ if mode == "0":
                 (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
                 | (df_ig_eps_orig["FWHM"] > 0)]
             prod_cols = [
-                x for x in df_ig_eps_orig.columns.to_list() if "Prod_mode" in x]
+                x for x in df_ig_eps_orig.columns.to_list()
+                if "Prod_mode" in x]
             fff = ["Energy", "E_tab", "Ig [%]", "Area",
                    "Isotope", "RR", "RR_fiss_prod"]
             cols = fff + prod_cols
@@ -256,16 +278,36 @@ elif mode == "1":
 
         df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
 
+        hl_lower_bound = pd.to_timedelta(
+            kwargs['hl_lower_bound']).total_seconds()
+
+        df = df[df["Half-life [s]"] > hl_lower_bound]
+
         # format text output to human- and LaTeX-readable
         polished_df = polish_res(df)
 
         # drop all unnecessary columns but prodmode
         dropped_df = drop_but_prodmode(polished_df)
 
-        # restrict hl and Ig interval
-        # hl_upper_bound = pd.to_timedelta(kwargs['hl_upper_bound']).total_seconds()
-        hl_lower_bound = pd.to_timedelta(
-            kwargs['hl_lower_bound']).total_seconds()
+        activation_df = dropped_df[
+                (dropped_df["Isotope"] == "238U")
+                | (df["Isotope"] == "239U")
+                | (df["Isotope"] == "239Np")
+                | (df["Isotope"] == "239Pu")]
+        # activation_df = activation_df[activation_df["Ig"] > 0.00001]
+
+        prod_cols = [x for x in activation_df.columns.to_list()
+                     if "Prod_mode" in x]
+        activation_df = activation_df.drop(columns=prod_cols)
+
+        first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                      "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
+        activation_df = permute_columns(activation_df, first_cols)
+
+        activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
+                             index=False)
+        activation_df = siunitx_mhchem(activation_df)
+        activation_df["Isotope"] = activation_df["Isotope"].apply(to_mhchem)
 
         dropped_df.to_csv(
             f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
@@ -274,6 +316,7 @@ elif mode == "1":
             (dropped_df["E_tab"].isna())  # to determine the original lines
             | (dropped_df["old_RR_fiss_prod"] > 0)
             ]
+        fiss_df = fiss_df[fiss_df["Ig"] > 0.01]
         prod_cols = [x for x in fiss_df.columns.to_list() if "Prod_mode" in x]
         fiss_df = fiss_df.drop(columns=prod_cols)
 
@@ -282,47 +325,71 @@ elif mode == "1":
         fiss_df = permute_columns(fiss_df, first_cols)
 
         fiss_df = fiss_df[
-            (fiss_df["old_RR_fiss_prod"] > 1e-17)
+            (fiss_df["old_RR_fiss_prod"] > 1e-18)
             & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
+
+        dh = pd.DataFrame()
+
+        for energy in fiss_df["old_Energy"].unique():
+            dg = fiss_df[fiss_df["old_Energy"] == energy]
+
+            dg["rel_fiss_RR"] = 1e+16 * dg["old_RR_fiss_prod"]
+            dg["prod_exc"] = dg["rel_fiss_RR"].product() / dg["rel_fiss_RR"]
+            dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
+
+            dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
+
+            dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
+            dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
+
+            dh = dh.append(dg)
+
+        fiss_df["mod_fiss_RR"] = dh["mod_fiss_RR"]
+        average_rr(fiss_df["mod_fiss_RR"], "fiss")
+        dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
+        fiss_df["mod_Area"] = dh["mod_Area"]
 
         fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                        index=False)
         fiss_df = siunitx_mhchem(fiss_df)
         fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
-        fiss_df_tex = fiss_df.to_latex(index=False,
-                                       columns=["Energy", "E_tab", "Ig [%]",
-                                                "Area", "Isotope",
-                                                "RR_fiss_prod", "fiss_yield",
-                                                "Half-life [s]"],
-                                       buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
-                                       na_rep="", position="h",
-                                       caption=(f"{file_name}", ""),
-                                       label=f"{file_name}",
-                                       escape=False,
-                                       longtable=True,
-                                       column_format="SSSSlSSS")
 
-        # df = df[
-        #         (df["Half-life [s]"] >= hl_lower_bound)
-        #         & (df["Ig [%]"] >= kwargs["ig_lower_bound"])
-        #         & (df["Ig [%]"] <= kwargs["ig_upper_bound"])
-        #         | (df["FWHM"] > 0)]
+        activation_df = activation_df[
+            ~activation_df["old_Energy"].isin(fiss_df["old_Energy"])]
+        average_rr(activation_df["old_RR"], "activation")
+        activation_df_tex = activation_df.to_latex(
+            index=False,
+            columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                     "RR", "Half-life [s]"],
+            buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
+            header=["{$E\_{mer}$ [\si{keV}]}", "{$E\_{tab}$ [\si{keV}]}",
+                    "$I_{\gamma}$ [\%]", "$S\_{peak}$ [\si{keV}]",
+                    "Izotop", "$RR_{(n,g)}$ [\si{cm^{-3} s^{-1}}]",
+                    "$T_{1/2}$ [\si{s}]"],
+            na_rep="", position="h",
+            caption=(f"{file_name}", ""),
+            label=f"{file_name}-rc",
+            escape=False,
+            longtable=True,
+            column_format="SScclSSS")
 
-        # prod_cols = [x for x in df.columns.to_list() if "Prod_mode" in x]
-        # fff = ["Energy", "E_tab", "Ig [%]", "Area",
-        #        "Isotope", "RR", "RR_fiss_prod"]
-        # cols = fff + prod_cols
-        # df = permute_columns(df, cols)
-        # df.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
-        # df[
-        #     (df["FWHM"] > 0)  # to determine the original lines
-        #     # | (df["Prod_mode_Fission product"])
-        #     | (df["fiss_yield"] > 0)
-        #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
-        #              index=False)
-        # df[
-        #     (df["FWHM"] > 0)  # to determine the original lines
-        #     | (df["Prod_mode_Fast neutron activation"])
-        #     | (df["Prod_mode_Thermal neutron activation"])
-        #     ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
-        #              index=False)
+        fiss_df_tex = fiss_df.to_latex(
+            index=False,
+            columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area",
+                     "Isotope", "mod_fiss_RR", "fiss_yield", "Half-life [s]"],
+            header=["{$E\_{mer}$ [\si{keV}]}",
+                    "{$E\_{tab}$ [\si{keV}]}",
+                    "$I_{\gamma}$ [\%]",
+                    "$S\_{peak}$ [\si{keV}]",
+                    "$S\_{mod}$ [\si{keV}]",
+                    "Izotop",
+                    "$RR_{(n,f)}$ [\si{cm^{-3} s^{-1}}]",
+                    "$Y_f$",
+                    "$T_{1/2}$ [\si{s}]"],
+            buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
+            na_rep="", position="h",
+            caption=(f"{file_name}", ""),
+            label=f"{file_name}-f",
+            escape=False,
+            longtable=True,
+            column_format="SSccclSSS")

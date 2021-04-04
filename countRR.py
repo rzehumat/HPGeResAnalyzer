@@ -52,10 +52,9 @@ def countRR(orig_df, mu_df, **kwargs):
     acq_started = pd.to_datetime(orig_df["Acquisition Started"][0],
                                  dayfirst=True)
     delta_t = (acq_started - irr_start).total_seconds() - t_irr
-    T_LOW = 0.05 * delta_t
+    T_LOW = 0.1 * delta_t
     T_HIGH = 6e+6
 
-    df_low = orig_df[(orig_df["Half-life [s]"] < T_LOW)]
     df = orig_df[
         (orig_df["Half-life [s]"] > T_LOW)
         & (orig_df["Half-life [s]"] < T_HIGH)]
@@ -68,6 +67,7 @@ def countRR(orig_df, mu_df, **kwargs):
     rho = ufloat_fromstr(kwargs['foil_material_rho'])
     d = ufloat_fromstr(kwargs['foil_thickness'])
     k = (mu * rho * d) / (1 - unp.exp(- mu * rho * d))
+
     lam = np.log(2) / df["Half-life [s]"]
 
     mass = ufloat_fromstr(kwargs['foil_mass'])
@@ -88,7 +88,7 @@ def countRR(orig_df, mu_df, **kwargs):
     df["RR_fiss_prod"] = (2 / df["fiss_yield"]) * df["RR"]
     print("Reaction rates counted successfully.")
     df = df.append(lines_df)
-    df = df.append(df_low)
+    
     df = df.append(df_high)
     df = df.sort_values(by=["Energy", "Channel", "Ig [%]"],
                         ascending=[True, True, False])
