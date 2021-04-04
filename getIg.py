@@ -50,13 +50,11 @@ def add_Ig(df, ig, ig_thr=1e-8):
     # UGLY, never for-loop in pandas
     added_df = df
     for row in range(df.shape[0]):
-        # condition = (
-        #     (df.loc[row, "Energy"] - 0.5*df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"])
-        #     & (df.loc[row, "Energy"] + 0.5*df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"])
-        #     & (ig["Ig"] > ig_thr))
         condition = (
-            (df.loc[row, "Energy"] - 0.5*df.loc[row, "FWHM"] < ig["E_tab"] + ig["sigm_E"])
-            & (df.loc[row, "Energy"] + 0.5*df.loc[row, "FWHM"] > ig["E_tab"] - ig["sigm_E"])
+            (df.loc[row, "Energy"] - 0.5*df.loc[row, "FWHM"]
+             < ig["E_tab"] + ig["sigm_E"])
+            & (df.loc[row, "Energy"] + 0.5*df.loc[row, "FWHM"]
+               > ig["E_tab"] - ig["sigm_E"])
             & (ig["Ig"] > ig_thr))
 
         suitable_lines = ig[condition]
@@ -64,7 +62,7 @@ def add_Ig(df, ig, ig_thr=1e-8):
         try:
             for col in ["Energy", "Area", "FWHM", "%err"]:
                 suitable_lines.loc[:, (col)] = df.loc[row, col]
-        
+
         except ValueError:
             continue
 
