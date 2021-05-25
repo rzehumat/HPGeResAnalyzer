@@ -1,3 +1,4 @@
+from os import error
 import rptParser
 import getIg
 import getEpsilon
@@ -75,7 +76,7 @@ def add_unc_en(x):
 
 
 def unc_to_bracket(num):
-    if isinstance(num, float):
+    if isinstance(num, float) or isinstance(num, int):
         return num
     elif isnan(num.s):
         num = uc.ufloat(num.n, 0.01*num.n)
@@ -93,12 +94,17 @@ def polish_res(df):
     df["fiss_yield"] = df[["fiss_yield", "sigm_fiss_yield"]].apply(
         add_unc, axis=1)
     df["old_fiss_yield"] = df["fiss_yield"].copy()
-    df["old_RR"] = df["RR"].copy()
+    
+    if kwargs["RR"]:
+        df["old_RR"] = df["RR"].copy()
     df["Ig [%]"] = (100 * df["Ig"]).apply(unc_to_bracket)
-    df["old_RR_fiss_prod"] = df["RR_fiss_prod"].copy()
+    if kwargs["RR"]:
+        df["old_RR_fiss_prod"] = df["RR_fiss_prod"].copy()
 
-    for col in ["RR", "Area", "RR_fiss_prod", "Real Time",
-                "Live Time", "Half-life [s]"]:
+    cols = ["Area", "Real Time", "Live Time", "Half-life [s]"]
+    if kwargs["RR"]:
+        cols += ["RR", "RR_fiss_prod"]
+    for col in cols:
         df[col] = df[col].apply(unc_to_bracket)
 
     return df
@@ -130,7 +136,7 @@ def drop_but_prodmode(df):
                     "Efficiency Calibration Used Done On"]
                  + auxilliary
                  + peak_analysis_report)
-    return df.drop(columns=drop_cols)
+    return df.drop(columns=drop_cols, errors="ignore")
 
 
 print("Available modes (default 1):")
@@ -170,8 +176,16 @@ for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
 
     file_name = file_path.split("/")[-1].split(".")[-2]
 
+    # if kwargs["RR"]:
+    #     print("AAA")
+    # else:
+    #     print("BBB")
+    # input()
+
     df = addOrigin(df, info_df, yield_df)
-    df = countRR(df, mu_df, **kwargs)
+    # Sometimes we are not interested in reaction rates
+    if kwargs["RR"]:
+        df = countRR(df, mu_df, **kwargs)
 
     df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
 
@@ -198,7 +212,9 @@ for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
     activation_df = activation_df.drop(columns=prod_cols)
 
     first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-                  "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
+                  "fiss_yield", "Half-life [s]"]
+    if kwargs["RR"]:
+        first_cols += ["RR", "RR_fiss_prod"]
     activation_df = permute_columns(activation_df, first_cols)
 
     activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
