@@ -2,7 +2,7 @@ import rptParser
 import getIg
 import getEpsilon
 import glob
-import os
+# import os
 import json
 import re
 
@@ -10,8 +10,8 @@ import pandas as pd
 import numpy as np
 import uncertainties as uc
 
-from collections import defaultdict
-from pathlib import Path
+# from collections import defaultdict
+# from pathlib import Path
 from math import isnan
 from addOrigin import addOrigin
 from countRR import countRR
@@ -133,10 +133,9 @@ def drop_but_prodmode(df):
     return df.drop(columns=drop_cols)
 
 
-print("Available modes (default 0):")
-print("0 ... 'Process dir' with terminal inputs"
-      "(not recommended due to no error-safety)")
+print("Available modes (default 1):")
 print("1 ... 'Process dir' with inputs from 'config.json' file (recommended)")
+print("2 ... Test mode")
 
 ig_all_df = pd.read_parquet("aux_data/ig_all.pq")
 info_df = pd.read_parquet("aux_data/info_all.pq")
@@ -146,254 +145,152 @@ CALIBRATION_PATH = "aux_data/epsilons.csv"
 eps_df = pd.read_csv(CALIBRATION_PATH, index_col=0)
 
 print("Select mode:")
-mode = input("[0]/[1]/[2] (default 1)") or "1"
+mode = input("[1]/[2] (default 1)") or "1"
 
-if mode == "0":
-    raw_dir = input("Enter relative path to directory"
-                    "(press enter to keep default"
-                    " 'raw_reports': ") or "raw_reports"
-    if not os.path.isdir(raw_dir):
-        raise Exception(f"Folder {raw_dir} not found."
-                        "Consider creating it and moving RPT files there.")
-    else:
-        Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-        keys = ["A", "element", "detector_geometry", "foil_material_rho",
-                "foil_thickness", "foil_mass",
-                "foil_material_molar_mass", "irradiation_time",
-                "irradiation_start"]
-        units = ["mass number", "chemical abbr", "3/30/80/120/250",
-                 "g.cm^-3", "cm", "g", "g.mol^-1", "s",
-                 "dd.mm.yyyy hh:mm:ss"]
+# if mode == "1":
+if mode == "1":
+    conf_file_name = "config.json"
+elif mode == "2":
+    conf_file_name = "test/config_test.json"
 
-        kwargs = defaultdict(list)
+# json_config = open("config.json", "r")
+json_config = open(conf_file_name, "r")
+config = json.load(json_config)
+# UGLY, reuse the loop below
+for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
+    raw_df = rptParser.parse_one_RPT(file_path)
+    # jsn_config = open("config.json", "r")
+    jsn_config = open(conf_file_name, "r")
+    cfg = json.load(jsn_config)
+    kwargs = get_kwargs(cfg, file_path)
 
-        file_names = []
-        for file_path in glob.iglob(f"{raw_dir}/*.RPT"):
-            # UGLY, rewrite using the "unpacking operator *"
-            # UGLY, reuse the loop-over-RPT-files
-            file_names.append(file_path)
-            try:
-                file_vars = getEpsilon.file_name_parse(file_path)
-                for i in range(3):
-                    kwargs[keys[i]].append(file_vars[i])
-            except ValueError:
-                print("Info not detected from file name'"
-                      f"{file_path.split('/')[-1]}'.")
-                print("If A, element are known, add it manually."
-                      "If not, leave A and element blank.")
-                for i in range(3):
-                    user_input = input(f"{keys[i]} [{units[i]}] = ")
-                    kwargs[keys[i]].append(str(user_input))
+    df = getIg.append_Igamma(raw_df, ig_all_df, **kwargs)
+    print(f"file_path is {file_path}")
+    df = getEpsilon.add_epsilon_file(df, eps_df, **kwargs)
 
-            for i in range(3, len(keys)):
-                if i < len(keys) - 1:
-                    inp = input(f"{keys[i]} [{units[i]}]"
-                                " (expected format '̈́0.23(1)') = ")
-                    inp = uc.ufloat_fromstr(inp)
-                    kwargs[keys[i]].append(inp)
-                else:
-                    kwargs[keys[i]].append(input(f"{keys[i]} [{units[i]}] = "))
+    file_name = file_path.split("/")[-1].split(".")[-2]
 
-        kwargs_df = pd.DataFrame.from_dict(kwargs)
-        for j in range(len(file_names)):
+    df = addOrigin(df, info_df, yield_df)
+    df = countRR(df, mu_df, **kwargs)
 
-            # Move to the dict above!!!
-            print("Allowed time units [ns, us, ms, s, m, h, d, w, y]")
-            print("Expected format '2.45 y'")
-            hl_upper_bound = input(
-                "Enter maximal Half-life to include (default 2 y) = ") or "2 y"
-            hl_upper_bound = pd.to_timedelta(hl_upper_bound).total_seconds()
+    df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
 
-            ig_lower_bound = (input(
-                "Enter minimal Ig to include [in %] (default 0.01 %) = ")
-                 or "0.01")
-            ig_lower_bound = float(ig_lower_bound)
+    hl_lower_bound = pd.to_timedelta(
+        kwargs['hl_lower_bound']).total_seconds()
 
-            file_name = file_names[j]
-            kwargs = kwargs_df.loc[j].to_dict()
+    df = df[df["Half-life [s]"] > hl_lower_bound]
 
-            raw_df = rptParser.parse_one_RPT(file_name)
-            df_ig = getIg.append_Igamma(raw_df, kwargs["A"],
-                                        kwargs["element"], ig_all_df)
-            df_ig_eps = getEpsilon.add_epsilon_file(
-                df_ig, kwargs["detector_geometry"], eps_df)
+    # format text output to human- and LaTeX-readable
+    polished_df = polish_res(df)
 
-            file_name = file_name.split("/")[-1].split(".")[-2]
+    # drop all unnecessary columns but prodmode
+    dropped_df = drop_but_prodmode(polished_df)
 
-            df_ig_eps_orig = addOrigin(df_ig_eps, info_df, yield_df)
-            df_ig_eps_orig = countRR(df_ig_eps_orig, mu_df,
-                                     kwargs["foil_material_rho"],
-                                     kwargs["foil_thickness"],
-                                     kwargs["foil_mass"],
-                                     kwargs["foil_material_molar_mass"],
-                                     kwargs["irradiation_time"],
-                                     kwargs["irradiation_start"])
-            # Half-life threshold should be
-            df_ig_eps_orig = df_ig_eps_orig[
-                (df_ig_eps_orig["Half-life [s]"] < hl_upper_bound)
-                | (df_ig_eps_orig["FWHM"] > 0)]
-            df_ig_eps_orig = df_ig_eps_orig[
-                (df_ig_eps_orig["Ig [%]"] >= ig_lower_bound)
-                | (df_ig_eps_orig["FWHM"] > 0)]
-            prod_cols = [
-                x for x in df_ig_eps_orig.columns.to_list()
-                if "Prod_mode" in x]
-            fff = ["Energy", "E_tab", "Ig [%]", "Area",
-                   "Isotope", "RR", "RR_fiss_prod"]
-            cols = fff + prod_cols
-            df_ig_eps_orig = permute_columns(df_ig_eps_orig, cols)
+    activation_df = dropped_df[
+            (dropped_df["Isotope"] == "238U")
+            | (df["Isotope"] == "239U")
+            | (df["Isotope"] == "239Np")
+            | (df["Isotope"] == "239Pu")]
+    # activation_df = activation_df[activation_df["Ig"] > 0.00001]
 
-            df_ig_eps_orig.to_csv(f"{OUTPUT_DIR}/{file_name}.csv", index=False)
-            df_ig_eps_orig[
-                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
-                | (df_ig_eps_orig["Prod_mode_Fission product"])
-                | (df_ig_eps_orig["fiss_yield"] > 0)
-                ].to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+    prod_cols = [x for x in activation_df.columns.to_list()
+                 if "Prod_mode" in x]
+    activation_df = activation_df.drop(columns=prod_cols)
+
+    first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                  "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
+    activation_df = permute_columns(activation_df, first_cols)
+
+    activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
                          index=False)
-            df_ig_eps_orig[
-                (df_ig_eps_orig["FWHM"] > 0)  # to determine the original lines
-                | (df_ig_eps_orig["Prod_mode_Fast neutron activation"])
-                | (df_ig_eps_orig["Prod_mode_Thermal neutron activation"])
-                ].to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
-                         index=False)
+    activation_df = siunitx_mhchem(activation_df)
+    activation_df["Isotope"] = activation_df["Isotope"].apply(to_mhchem)
 
-elif mode == "1":
-    json_config = open("config.json", "r")
-    config = json.load(json_config)
-    # UGLY, reuse the loop below
-    for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
-        raw_df = rptParser.parse_one_RPT(file_path)
-        jsn_config = open("config.json", "r")
-        cfg = json.load(jsn_config)
-        kwargs = get_kwargs(cfg, file_path)
+    dropped_df.to_csv(
+        f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
 
-        df = getIg.append_Igamma(raw_df, ig_all_df, **kwargs)
-        print(f"file_path is {file_path}")
-        df = getEpsilon.add_epsilon_file(df, eps_df, **kwargs)
+    fiss_df = dropped_df[
+        (dropped_df["E_tab"].isna())  # to determine the original lines
+        | (dropped_df["old_RR_fiss_prod"] > 0)
+        ]
+    fiss_df = fiss_df[fiss_df["Ig"] > 0.01]
+    prod_cols = [x for x in fiss_df.columns.to_list() if "Prod_mode" in x]
+    fiss_df = fiss_df.drop(columns=prod_cols)
 
-        file_name = file_path.split("/")[-1].split(".")[-2]
+    first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                  "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
+    fiss_df = permute_columns(fiss_df, first_cols)
 
-        df = addOrigin(df, info_df, yield_df)
-        df = countRR(df, mu_df, **kwargs)
+    fiss_df = fiss_df[
+        (fiss_df["old_RR_fiss_prod"] > 1e-18)
+        & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
 
-        df.to_csv(f"{OUTPUT_DIR}/{file_name}_raw.csv", index=False)
+    dh = pd.DataFrame()
 
-        hl_lower_bound = pd.to_timedelta(
-            kwargs['hl_lower_bound']).total_seconds()
+    for energy in fiss_df["old_Energy"].unique():
+        dg = fiss_df[fiss_df["old_Energy"] == energy]
 
-        df = df[df["Half-life [s]"] > hl_lower_bound]
+        dg["rel_fiss_RR"] = 1e+16 * dg["old_RR_fiss_prod"]
+        dg["prod_exc"] = dg["rel_fiss_RR"].product() / dg["rel_fiss_RR"]
+        dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
 
-        # format text output to human- and LaTeX-readable
-        polished_df = polish_res(df)
+        dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
 
-        # drop all unnecessary columns but prodmode
-        dropped_df = drop_but_prodmode(polished_df)
+        dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
+        dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
 
-        activation_df = dropped_df[
-                (dropped_df["Isotope"] == "238U")
-                | (df["Isotope"] == "239U")
-                | (df["Isotope"] == "239Np")
-                | (df["Isotope"] == "239Pu")]
-        # activation_df = activation_df[activation_df["Ig"] > 0.00001]
+        dh = dh.append(dg)
 
-        prod_cols = [x for x in activation_df.columns.to_list()
-                     if "Prod_mode" in x]
-        activation_df = activation_df.drop(columns=prod_cols)
+    fiss_df["mod_fiss_RR"] = dh["mod_fiss_RR"]
+    average_rr(fiss_df["mod_fiss_RR"], "fiss")
+    dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
+    fiss_df["mod_Area"] = dh["mod_Area"]
 
-        first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-                      "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
-        activation_df = permute_columns(activation_df, first_cols)
+    fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
+                   index=False)
+    fiss_df = siunitx_mhchem(fiss_df)
+    fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
 
-        activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
-                             index=False)
-        activation_df = siunitx_mhchem(activation_df)
-        activation_df["Isotope"] = activation_df["Isotope"].apply(to_mhchem)
+    activation_df = activation_df[
+        ~activation_df["old_Energy"].isin(fiss_df["old_Energy"])]
+    average_rr(activation_df["old_RR"], "activation")
+    activation_df["Ig [%]"] = activation_df["Ig [%]"].apply(add_si)
+    activation_df_tex = activation_df.to_latex(
+        index=False,
+        columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
+                 "RR", "Half-life [s]"],
+        buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
+        header=["{$E\_{mer}$ [\si{keV}]}", "{$E\_{tab}$ [\si{keV}]}",
+                "$I_{\gamma}$ [\%]", "$S\_{peak}$ [\si{keV}]",
+                "Izotop", "$RR_{(n,g)}$ [\si{cm^{-3} s^{-1}}]",
+                "$T_{1/2}$ [\si{s}]"],
+        na_rep="", position="h",
+        caption=(f"{file_name}", ""),
+        label=f"{file_name[:5]}-rc",
+        escape=False,
+        longtable=True,
+        column_format="SScclcc")
 
-        dropped_df.to_csv(
-            f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
-
-        fiss_df = dropped_df[
-            (dropped_df["E_tab"].isna())  # to determine the original lines
-            | (dropped_df["old_RR_fiss_prod"] > 0)
-            ]
-        fiss_df = fiss_df[fiss_df["Ig"] > 0.01]
-        prod_cols = [x for x in fiss_df.columns.to_list() if "Prod_mode" in x]
-        fiss_df = fiss_df.drop(columns=prod_cols)
-
-        first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-                      "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
-        fiss_df = permute_columns(fiss_df, first_cols)
-
-        fiss_df = fiss_df[
-            (fiss_df["old_RR_fiss_prod"] > 1e-18)
-            & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
-
-        dh = pd.DataFrame()
-
-        for energy in fiss_df["old_Energy"].unique():
-            dg = fiss_df[fiss_df["old_Energy"] == energy]
-
-            dg["rel_fiss_RR"] = 1e+16 * dg["old_RR_fiss_prod"]
-            dg["prod_exc"] = dg["rel_fiss_RR"].product() / dg["rel_fiss_RR"]
-            dg["fraction"] = dg["prod_exc"] / dg["prod_exc"].sum()
-
-            dg["mod_fiss_RR"] = dg["fraction"] * dg["old_RR_fiss_prod"]
-
-            dg["mod_Area"] = dg["fraction"] * dg["old_Area"]
-            dg["mod_Area"] = dg["mod_Area"].apply(unc_to_bracket)
-
-            dh = dh.append(dg)
-
-        fiss_df["mod_fiss_RR"] = dh["mod_fiss_RR"]
-        average_rr(fiss_df["mod_fiss_RR"], "fiss")
-        dg["mod_fiss_RR"] = dg["mod_fiss_RR"].apply(unc_to_bracket)
-        fiss_df["mod_Area"] = dh["mod_Area"]
-
-        fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
-                       index=False)
-        fiss_df = siunitx_mhchem(fiss_df)
-        fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
-
-        activation_df = activation_df[
-            ~activation_df["old_Energy"].isin(fiss_df["old_Energy"])]
-        average_rr(activation_df["old_RR"], "activation")
-        activation_df["Ig [%]"] = activation_df["Ig [%]"].apply(add_si)
-        activation_df_tex = activation_df.to_latex(
-            index=False,
-            columns=["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-                     "RR", "Half-life [s]"],
-            buf=f"{OUTPUT_DIR}/{file_name}_activation.tex",
-            header=["{$E\_{mer}$ [\si{keV}]}", "{$E\_{tab}$ [\si{keV}]}",
-                    "$I_{\gamma}$ [\%]", "$S\_{peak}$ [\si{keV}]",
-                    "Izotop", "$RR_{(n,g)}$ [\si{cm^{-3} s^{-1}}]",
-                    "$T_{1/2}$ [\si{s}]"],
-            na_rep="", position="h",
-            caption=(f"{file_name}", ""),
-            label=f"{file_name[:5]}-rc",
-            escape=False,
-            longtable=True,
-            column_format="SScclcc")
-
-        fiss_df["mod_fiss_RR"] = fiss_df["mod_fiss_RR"].apply(unc_to_bracket)
-        fiss_df["mod_fiss_RR"] = fiss_df["mod_fiss_RR"].apply(add_si)
-        fiss_df["mod_Area"] = fiss_df["mod_Area"].apply(add_si)
-        fiss_df_tex = fiss_df.to_latex(
-            index=False,
-            columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area",
-                     "Isotope", "mod_fiss_RR", "fiss_yield", "Half-life [s]"],
-            header=["{$E\_{mer}$ [\si{keV}]}",
-                    "{$E\_{tab}$ [\si{keV}]}",
-                    "$I_{\gamma}$ [\%]",
-                    "$S\_{peak}$ [\si{keV}]",
-                    "$S\_{mod}$ [\si{keV}]",
-                    "Izotop",
-                    "\\footnotesize{$\\frac{RR_{(n,f)}}{[\si{cm^{-3} s^{-1}}]}$}",
-                    "$Y_f$",
-                    "$T_{1/2}$ [\si{s}]"],
-            buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
-            na_rep="", position="h",
-            caption=(f"{file_name}", ""),
-            label=f"{file_name[:5]}-f",
-            escape=False,
-            longtable=True,
-            column_format="Scccrlrrr")
+    fiss_df["mod_fiss_RR"] = fiss_df["mod_fiss_RR"].apply(unc_to_bracket)
+    fiss_df["mod_fiss_RR"] = fiss_df["mod_fiss_RR"].apply(add_si)
+    fiss_df["mod_Area"] = fiss_df["mod_Area"].apply(add_si)
+    fiss_df_tex = fiss_df.to_latex(
+        index=False,
+        columns=["Energy", "E_tab", "Ig [%]", "Area", "mod_Area",
+                 "Isotope", "mod_fiss_RR", "fiss_yield", "Half-life [s]"],
+        header=["{$E\_{mer}$ [\si{keV}]}",
+                "{$E\_{tab}$ [\si{keV}]}",
+                "$I_{\gamma}$ [\%]",
+                "$S\_{peak}$ [\si{keV}]",
+                "$S\_{mod}$ [\si{keV}]",
+                "Izotop",
+                "\\footnotesize{$\\frac{RR_{(n,f)}}{[\si{cm^{-3} s^{-1}}]}$}",
+                "$Y_f$",
+                "$T_{1/2}$ [\si{s}]"],
+        buf=f"{OUTPUT_DIR}/{file_name}_fissile_products.tex",
+        na_rep="", position="h",
+        caption=(f"{file_name}", ""),
+        label=f"{file_name[:5]}-f",
+        escape=False,
+        longtable=True,
+        column_format="Scccrlrrr")
