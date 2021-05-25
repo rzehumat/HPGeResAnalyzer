@@ -42,8 +42,11 @@ def add_si(num):
     return "\\num{{{}}}".format(num)
 
 
-def siunitx_mhchem(df):
-    for col in ["Area", "RR", "Half-life [s]"]:
+def siunitx_mhchem(df, rr):
+    cols = ["Area", "Half-life [s]"]
+    if rr:
+        cols += ["RR"]
+    for col in cols:
         df[col] = df[col].apply(add_si)
     return df
 
@@ -219,27 +222,35 @@ for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
 
     activation_df.to_csv(f"{OUTPUT_DIR}/{file_name}_activation.csv",
                          index=False)
-    activation_df = siunitx_mhchem(activation_df)
+    activation_df = siunitx_mhchem(activation_df, kwargs["RR"])
     activation_df["Isotope"] = activation_df["Isotope"].apply(to_mhchem)
 
     dropped_df.to_csv(
         f"{OUTPUT_DIR}/{file_name}_polished.csv", index=False)
 
-    fiss_df = dropped_df[
-        (dropped_df["E_tab"].isna())  # to determine the original lines
-        | (dropped_df["old_RR_fiss_prod"] > 0)
+    if kwargs["RR"]:
+        fiss_df = dropped_df[
+            (dropped_df["E_tab"].isna())  # to determine the original lines
+            | (dropped_df["old_RR_fiss_prod"] > 0)
         ]
+    else:
+        fiss_df = dropped_df[
+            (dropped_df["E_tab"].isna())]  # to determine the original lines
+
     fiss_df = fiss_df[fiss_df["Ig"] > 0.01]
     prod_cols = [x for x in fiss_df.columns.to_list() if "Prod_mode" in x]
     fiss_df = fiss_df.drop(columns=prod_cols)
 
     first_cols = ["Energy", "E_tab", "Ig [%]", "Area", "Isotope",
-                  "RR", "RR_fiss_prod", "fiss_yield", "Half-life [s]"]
+                  "fiss_yield", "Half-life [s]"]
+    if kwargs["RR"]:
+        first_cols += ["RR", "RR_fiss_prod"] 
     fiss_df = permute_columns(fiss_df, first_cols)
 
-    fiss_df = fiss_df[
-        (fiss_df["old_RR_fiss_prod"] > 1e-18)
-        & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
+    if kwargs["RR"]:
+        fiss_df = fiss_df[
+            (fiss_df["old_RR_fiss_prod"] > 1e-18)
+            & (fiss_df["old_RR_fiss_prod"] < 1e-14)]
 
     dh = pd.DataFrame()
 
@@ -264,7 +275,7 @@ for file_path in glob.iglob(f"{config['raw_dir']}/*.RPT"):
 
     fiss_df.to_csv(f"{OUTPUT_DIR}/{file_name}_fissile_products.csv",
                    index=False)
-    fiss_df = siunitx_mhchem(fiss_df)
+    fiss_df = siunitx_mhchem(fiss_df, kwargs["RR"])
     fiss_df["Isotope"] = fiss_df["Isotope"].apply(to_mhchem)
 
     activation_df = activation_df[
